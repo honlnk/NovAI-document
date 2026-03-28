@@ -49,19 +49,19 @@ status: draft
 | 项目形态  | 纯前端（无自建后端）    | 本地化运行，LLM 等能力通过云端 API 调用       |
 | 桌面端打包 | Tauri（候选）      | 轻量，支持 Windows / macOS |
 | 移动端打包 | Capacitor（候选）  | 支持 Android 安装包        |
-| 本地数据库 | SQLite + 向量数据库 | 仅用于存储 Embedding 向量索引，加速 RAG 语义检索（见下方说明） |
+| 向量检索 | Orama | 纯 JS 向量搜索引擎，存储 Embedding 向量索引，加速 RAG 语义检索（见下方说明） |
 | 版本管理  | Git            | 校对版本管理、内容回退           |
 | 文件格式  | Markdown / JSON | 章节内容、要素数据以 .md 存储，项目配置以 JSON 存储 |
 
-> [!note] 关于"本地数据库"的说明
+> [!note] 关于"向量检索"的说明
 > 项目中存在**两层存储**，职责不同：
 >
 > | 存储方式 | 存什么 | 谁在用 |
 > |:---------|:-------|:-------|
 > | **.md / JSON 文件** | 章节内容、人物卡片、时间线、项目配置等**正式数据** | 人看的 + AI 读的 |
-> | **SQLite（向量索引）** | 要素的 Embedding 向量，用于**语义相似度检索** | 仅工具内部使用，用户无需关心 |
+> | **Orama（IndexedDB）** | 要素的 Embedding 向量，用于**语义相似度检索** | 仅工具内部使用，用户无需关心 |
 >
-> .md 和 JSON 是"真相来源（Source of Truth）"，SQLite 只是"检索加速用的索引缓存"。删掉 SQLite 文件，工具重新扫描 .md 并调用 Embedding API 重建索引即可，数据不会丢失。
+> .md 和 JSON 是"真相来源（Source of Truth）"，Orama 索引只是"检索加速用的缓存"。删掉 Orama 索引，工具重新扫描 .md 并调用 Embedding API 重建索引即可，数据不会丢失。
 
 ### 支持平台
 
@@ -362,12 +362,18 @@ graph TD
 | 对话上下文压缩 | Vibe Coding 风格 | 设置 Token 上限，接近上限时自动压缩，同时提供手动压缩按钮 |
 | 批量校对 | 支持多选 | 用户可自选要校对的章节，未选择时默认校对最后 N 章 |
 | 多平台支持 | 第一阶段仅浏览器端 | 移动端性能和打包方案（Tauri / Capacitor）延后到后续阶段考虑 |
+| 向量检索引擎 | Orama | 纯 JS、轻量、支持混合搜索，小说场景千到万级数据量性能足够。详见 [技术架构设计](技术架构设计.md) |
+| Git 集成 | isomorphic-git | 纯 JS、活跃维护（v1.37.x），功能覆盖完全满足需求。需自行封装 Diff 和 File System Access API 适配器 |
+| 文件访问 | File System Access API | 浏览器端直接操作本地文件系统，仅 Chromium 支持。后续 Tauri 桌面端消除此限制 |
 
 ## 八、待评估的技术难点
 
+> [!success] 向量数据库选型已确定
+> 已选定 Orama 作为向量检索引擎，详见 [技术架构设计 - 向量检索](技术架构设计.md#22-向量检索orama)。
+
 > [!warning] 以下问题需要在开发前或开发中持续评估
 
-- **向量数据库选型**：同时保留**本地方案**（候选：SQLite-vec、Orama、LanceDB）和**云端方案**（候选：Pinecone、Qdrant Cloud、Supabase pgvector），开发时再决定优先实现哪个，或全部实现由用户自选
+- **File System Access API 适配器**：需要将 isomorphic-git 的 `fs` 接口桥接到 File System Access API 的目录句柄上，具体实现细节需在开发时验证
 
 ## 九、后续阶段考虑
 
