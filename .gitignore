@@ -1,3 +1,12 @@
-node_modules/
-.novel/
-.git/
+# Obsidian configuration
+.obsidian/
+
+# macOS system files
+.DS_Store
+**/.DS_Store
+
+# Ignore Smart Environment folder
+.smart-env
+
+# Ignore Claude Code
+.claude/
