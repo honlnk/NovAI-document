@@ -13,3 +13,6 @@
 
 # Ignore Claudian
 .claudian/sessions/
+
+# Ignore PDF files
+*.pdf
