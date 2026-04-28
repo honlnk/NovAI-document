@@ -10,3 +10,6 @@
 
 # Ignore Claude Code
 .claude/
+
+# Ignore Claudian
+.claudian/sessions/
