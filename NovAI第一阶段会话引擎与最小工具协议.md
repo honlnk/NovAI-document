@@ -22,6 +22,17 @@
 - [开发前最小契约文档](开发前最小契约文档.md)
 - [UI设计文档](UI设计文档.md)
 
+当前实现状态：
+
+- 已新增 `src/core/agent/` 作为第一版 Agent Loop 核心层
+- 已新增 `src/core/tools/` 作为项目文件工具底层实现
+- 已接入 OpenAI-compatible `tools / tool_calls`
+- 已实现 `ReadFile / EditFile / CreateFile` 三个高频文件工具
+- 已实现项目级运行日志 `.novel/logs/agent.log.jsonl`
+- 已实现最近项目 IndexedDB 记忆与恢复
+
+本文档中未完成能力仍按“目标设计”理解，已完成能力以当前实现状态为准。
+
 ---
 
 ## 二、第一阶段的真实目标
@@ -209,7 +220,7 @@ type ToolCallMessage = {
   id: string
   role: 'system'
   kind: 'tool-call'
-  toolName: 'FileRead' | 'FileWrite' | 'FileEdit' | 'Bash' | 'RagSearch'
+  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'Bash' | 'RagSearch'
   inputSummary: string
   createdAt: string
 }
@@ -227,7 +238,7 @@ type ToolResultMessage = {
   id: string
   role: 'system'
   kind: 'tool-result'
-  toolName: 'FileRead' | 'FileWrite' | 'FileEdit' | 'Bash' | 'RagSearch'
+  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'Bash' | 'RagSearch'
   ok: boolean
   resultSummary: string
   createdAt: string
@@ -460,25 +471,39 @@ type ToolRuntimeContext = {
 
 ---
 
-## 十一、五个工具的第一阶段定义
+## 十一、第一阶段工具定义
 
-## 11.1 FileRead
+当前第一版已实现三个最高频文件工具：
+
+- `ReadFile`
+- `EditFile`
+- `CreateFile`
+
+`Bash` 和 `RagSearch` 保留为后续扩展目标。第一阶段先让模型稳定通过文件工具读写项目文件，再接入语义检索与更多辅助能力。
+
+## 11.1 ReadFile
 
 ### 输入
 
 ```ts
-type FileReadInput = {
+type ReadFileInput = {
   path: string
+  offset?: number
+  limit?: number
 }
 ```
 
 ### 输出
 
 ```ts
-type FileReadOutput = {
+type ReadFileOutput = {
   path: string
   content: string
-  updatedAt?: string
+  numberedContent: string
+  startLine: number
+  endLine: number
+  totalLines: number
+  truncated: boolean
 }
 ```
 
@@ -486,18 +511,21 @@ type FileReadOutput = {
 
 - 读取默认目标文件
 - 读取补充上下文文件
+- 为 `EditFile` 提供精确原文
 
 ### 规则
 
 - 优先用于 Markdown / JSON / TXT
+- 输出带行号内容，方便模型定位
+- 可通过 `offset / limit` 分段读取长文件
 - 第一阶段无需支持复杂二进制文件
 
-## 11.2 FileWrite
+## 11.2 CreateFile
 
 ### 输入
 
 ```ts
-type FileWriteInput = {
+type CreateFileInput = {
   path: string
   content: string
 }
@@ -506,10 +534,10 @@ type FileWriteInput = {
 ### 输出
 
 ```ts
-type FileWriteOutput = {
+type CreateFileOutput = {
   path: string
   contentLength: number
-  created: boolean
+  created: true
 }
 ```
 
@@ -519,41 +547,50 @@ type FileWriteOutput = {
 - 新建提示词
 - 新建要素文件
 
-## 11.3 FileEdit
+### 规则
+
+- 目标文件已存在时失败
+- 用于明确“新建”语义，不承担覆盖已有文件职责
+
+## 11.3 EditFile
 
 ### 输入
 
 ```ts
-type FileEditInput = {
+type EditFileInput = {
   path: string
-  newContent: string
+  oldText: string
+  newText: string
+  replaceAll?: boolean
 }
 ```
 
 ### 输出
 
 ```ts
-type FileEditOutput = {
+type EditFileOutput = {
   path: string
+  occurrences: number
   contentLength: number
+  linesAdded: number
+  linesRemoved: number
 }
 ```
 
-### 第一阶段建议
+### 当前实现
 
-第一阶段先不要追求“局部 patch 编辑协议”。
+当前已从“整体覆盖”升级为精确文本替换：
 
-可以先采用：
+- `oldText` 必须与文件中的原文精确匹配
+- 如果匹配多处且未启用 `replaceAll`，工具会失败
+- `oldText === newText` 会失败
+- 空 `oldText` 只允许用于空文件写入
 
-- AI 先读取完整文件
-- AI 输出完整修改后内容
-- 系统整体覆盖写回
-
-这样实现最简单，也最适合 Markdown 小说文件。
-
-后续如果需要更细粒度 diff，再升级为 patch 型编辑协议。
+这比整体覆盖更适合后续做 diff、权限确认和局部修改预览。
 
 ## 11.4 Bash
+
+当前仅保留为规划项，Session Lab 中不接真实命令执行。
 
 ### 输入
 
@@ -625,6 +662,8 @@ type RagSearchOutput = {
 
 这是 NovAI 区别于 Claude Code 的核心能力之一，因此必须从第一阶段就进入工具协议，而不是只停留在测试按钮层。
 
+当前 `RagSearch` 暂未接入新的 Agent Loop，后续应作为模型可主动调用的正式工具加入 `src/core/agent/tools.ts`。
+
 ---
 
 ## 十二、第一阶段模型输入格式建议
@@ -676,10 +715,10 @@ type RagSearchOutput = {
 ```txt
 用户说：把这一章结尾改得更悲壮一些
 -> 系统发现当前预览目标是 chapter
--> FileRead(当前章节)
+-> ReadFile(当前章节)
 -> RagSearch(与当前章节结尾相关的人物/情节要素)
--> 模型生成完整修改稿
--> FileEdit(覆盖章节)
+-> 模型生成局部修改方案
+-> EditFile(精确替换章节片段)
 -> 内容区刷新预览
 -> 对话区显示“已修改章节”摘要
 ```
@@ -689,9 +728,9 @@ type RagSearchOutput = {
 ```txt
 用户说：把这个场景提示词改得更有压迫感
 -> 系统发现当前预览目标是 prompt-scene
--> FileRead(当前 scene prompt)
--> 模型生成完整修改稿
--> FileEdit(覆盖提示词)
+-> ReadFile(当前 scene prompt)
+-> 模型生成局部修改方案
+-> EditFile(精确替换提示词片段)
 -> 内容区刷新预览
 -> 对话区显示“已修改提示词”摘要
 ```
@@ -705,7 +744,7 @@ type RagSearchOutput = {
 -> 读取近期章节
 -> RagSearch(人物 / 地点 / 情节 / 世界观)
 -> 模型生成章节内容
--> FileWrite(新章节)
+-> CreateFile(新章节)
 -> 后续触发要素提取与索引更新
 -> 内容区切换为新章节预览
 -> 对话区显示生成摘要
@@ -713,27 +752,39 @@ type RagSearchOutput = {
 
 ---
 
-## 十四、对现有代码的直接落地建议
+## 十四、当前落地状态与下一步
 
-结合当前仓库情况，建议下一批实现按这个顺序推进：
+### 14.1 已落地
+
+当前已经完成：
 
 1. 建立 `stores/chat.ts`
-   用于保存消息列表、状态、当前目标、当前草稿
-
 2. 建立最小消息类型
-   替换当前测试页只有 `instruction/result/status` 的状态模式
+3. 建立 `src/core/tools/` 文件工具层
+4. 建立 `src/core/agent/` Agent Loop 层
+5. 将当前预览文件接入 `ChatTargetContext`
+6. 将 Session Lab 接入新的 `query()` 循环
+7. 建立项目级日志系统
+8. 建立最近项目恢复能力
 
-3. 建立最小工具层
-   把现有 `project-fs`、RAG 搜索等能力包装成统一工具接口
+### 14.2 下一步建议
 
-4. 建立第一版 `chat engine`
-   让用户输入不再直接等于一次 LLM 调用
+下一批建议按这个顺序推进：
 
-5. 把当前预览文件接入 `ChatTargetContext`
-   让“正在看什么”真正变成 AI 默认工作目标
+1. 写工具权限确认
+   在 `EditFile / CreateFile` 真正执行前暂停 Query，让用户确认或拒绝。
 
-6. 把 `RagSearch` 接入会话引擎
+2. Query Guard / AbortController
+   避免重复提交，支持用户停止正在运行的 Agent。
+
+3. 工具调用分组与 Query Step UI
+   让用户能看到每轮模型调用和工具批次。
+
+4. 把 `RagSearch` 接入会话引擎
    不再只是测试按钮
+
+5. 要素提取与索引更新
+   让生成或修改章节后的结构化知识进入 `elements/` 与后续检索链路。
 
 ---
 
