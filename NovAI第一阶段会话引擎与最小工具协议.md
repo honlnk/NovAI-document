@@ -27,7 +27,7 @@
 - 已新增 `src/core/agent/` 作为第一版 Agent Loop 核心层
 - 已新增 `src/core/tools/` 作为项目文件工具底层实现
 - 已接入 OpenAI-compatible `tools / tool_calls`
-- 已实现 `ReadFile / EditFile / CreateFile` 三个高频文件工具
+- 已实现 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 项目文件工具
 - 已实现项目级运行日志 `.novel/logs/agent.log.jsonl`
 - 已实现最近项目 IndexedDB 记忆与恢复
 
@@ -220,7 +220,7 @@ type ToolCallMessage = {
   id: string
   role: 'system'
   kind: 'tool-call'
-  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'Bash' | 'RagSearch'
+  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'RenameFile' | 'DeleteFile' | 'ListDirectory' | 'FindFiles' | 'RagSearch'
   inputSummary: string
   createdAt: string
 }
@@ -238,7 +238,7 @@ type ToolResultMessage = {
   id: string
   role: 'system'
   kind: 'tool-result'
-  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'Bash' | 'RagSearch'
+  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'RenameFile' | 'DeleteFile' | 'ListDirectory' | 'FindFiles' | 'RagSearch'
   ok: boolean
   resultSummary: string
   createdAt: string
@@ -473,13 +473,17 @@ type ToolRuntimeContext = {
 
 ## 十一、第一阶段工具定义
 
-当前第一版已实现三个最高频文件工具：
+当前第一版已实现七个项目文件工具：
 
 - `ReadFile`
 - `EditFile`
 - `CreateFile`
+- `RenameFile`
+- `DeleteFile`
+- `ListDirectory`
+- `FindFiles`
 
-`Bash` 和 `RagSearch` 保留为后续扩展目标。第一阶段先让模型稳定通过文件工具读写项目文件，再接入语义检索与更多辅助能力。
+`Bash` 已明确不再作为 NovAI 工具开发目标。`RagSearch` 保留为后续正式接入 Agent Loop 的扩展目标。
 
 ## 11.1 ReadFile
 
@@ -504,6 +508,10 @@ type ReadFileOutput = {
   endLine: number
   totalLines: number
   truncated: boolean
+  empty: boolean
+  offsetBeyondEnd: boolean
+  fileSizeBytes: number
+  notice?: string
 }
 ```
 
@@ -537,6 +545,7 @@ type CreateFileInput = {
 type CreateFileOutput = {
   path: string
   contentLength: number
+  linesAdded: number
   created: true
 }
 ```
@@ -550,6 +559,7 @@ type CreateFileOutput = {
 ### 规则
 
 - 目标文件已存在时失败
+- 父目录不存在时自动创建
 - 用于明确“新建”语义，不承担覆盖已有文件职责
 
 ## 11.3 EditFile
@@ -581,46 +591,123 @@ type EditFileOutput = {
 
 当前已从“整体覆盖”升级为精确文本替换：
 
-- `oldText` 必须与文件中的原文精确匹配
-- 如果匹配多处且未启用 `replaceAll`，工具会失败
+- `oldText` 必须来自 `ReadFile` 返回内容，不应包含行号前缀
+- 如果匹配多处且未启用 `replaceAll`，工具会失败，并提示使用相邻行组成唯一片段
 - `oldText === newText` 会失败
-- 空 `oldText` 只允许用于空文件写入
+- 空 `oldText` 会失败，新建文件请使用 `CreateFile`
+- 对直引号和中文弯引号做了兼容处理
 
 这比整体覆盖更适合后续做 diff、权限确认和局部修改预览。
 
-## 11.4 Bash
+## 11.4 RenameFile
 
-当前仅保留为规划项，Session Lab 中不接真实命令执行。
+用于重命名或移动工作区内单个文本文件。
 
 ### 输入
 
 ```ts
-type BashInput = {
-  command: string
+type RenameFileInput = {
+  fromPath: string
+  toPath: string
 }
 ```
 
 ### 输出
 
 ```ts
-type BashOutput = {
-  stdout: string
-  stderr: string
-  exitCode: number
+type RenameFileOutput = {
+  fromPath: string
+  toPath: string
+  contentLength: number
 }
 ```
 
 ### 使用边界
 
-第一阶段 Bash 只作为辅助工具：
+- `fromPath` 必须存在
+- `toPath` 不能已存在
+- `toPath` 父目录不存在时自动创建
+- 只支持 `.md / .json / .txt`
+- 不允许操作 `novel.config.json` 或 `.novel/**`
 
-- 调试
-- 简单目录检查
-- 极少量批处理
+## 11.5 DeleteFile
 
-默认不作为主检索手段。
+用于把工作区内单个文本文件移入回收站。
 
-## 11.5 RagSearch
+### 输入
+
+```ts
+type DeleteFileInput = {
+  path: string
+}
+```
+
+### 输出
+
+```ts
+type DeleteFileOutput = {
+  path: string
+  trashPath: string
+  contentLength: number
+  linesRemoved: number
+}
+```
+
+### 使用边界
+
+- `path` 必须存在
+- 只支持 `.md / .json / .txt`
+- 不直接永久删除，而是移动到 `.novel/trash`
+- 不允许操作 `novel.config.json` 或 `.novel/**`
+- 用户意图不明确时，不应主动删除文件
+
+## 11.6 ListDirectory
+
+用于查看工作区内某个已存在目录的直接子项，不读取文件正文。
+
+```ts
+type ListDirectoryInput = {
+  path?: string
+  showHidden?: boolean
+}
+```
+
+```ts
+type ListDirectoryOutput = {
+  path: string
+  entries: Array<{
+    name: string
+    path: string
+    kind: 'file' | 'directory'
+    hidden: boolean
+  }>
+}
+```
+
+## 11.7 FindFiles
+
+用于按文件名或路径模式查找工作区内文件，不读取文件正文。
+
+```ts
+type FindFilesInput = {
+  pattern: string
+  path?: string
+  includeHidden?: boolean
+  limit?: number
+}
+```
+
+```ts
+type FindFilesOutput = {
+  pattern: string
+  path: string
+  filenames: string[]
+  numFiles: number
+  truncated: boolean
+}
+```
+
+## 11.8 RagSearch
 
 ### 输入
 

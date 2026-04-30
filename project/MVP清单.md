@@ -108,7 +108,7 @@ MVP 的目标不是做出完整的小说创作平台，而是验证 NovAI 最核
 3. 完成本地文件读取与文件树展示
 4. 完成文件预览面板
 5. 接入模型配置和基础流式生成
-6. 接入 `ReadFile / EditFile / CreateFile` 文件工具
+6. 接入 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 文件工具
 7. 接入第一版 `query()` Agent Loop
 8. 接入项目级日志与最近项目恢复
 
