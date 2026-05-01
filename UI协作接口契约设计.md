@@ -15,9 +15,22 @@
 
 这些模块已经具备“本地后台服务”的雏形，但它们目前仍偏内部实现 API。后续如果 UI 直接依赖大量 `core/*` 文件，前端展示层会被迫理解底层文件句柄、Agent 内部消息、工具执行细节和日志细节，协作时容易互相影响。
 
-因此，后续建议新增一层稳定的 UI 协作接口层，让 UI 主要依赖这层接口，而不是直接依赖 `core` 的内部模块。
+因此，项目已经新增第一版 UI 协作接口层，让 UI 主要依赖这层接口，而不是直接依赖 `core` 的内部模块。
 
-本文档只记录方案，不立即改代码。当前与本任务并行的还有“工具系统升级”任务，二者都可能触及 Agent 与工具调用边界。为避免冲突，接口层先以文档形式冻结方向，等工具系统升级完成后再落地。
+本文档最初用于记录方案；截至 2026-05-01，第一版接口层已经落地到 `src/services/` 与 `src/stores/`，并完成 `SessionTestView`、`TestLabView` 的迁移验证。
+
+当前状态：
+
+- `src/views` 和 `src/stores` 不再直接 import `src/core/*`。
+- UI 页面主要通过 Pinia store 使用能力。
+- Pinia store 通过 `src/services/*` 调用 core。
+- `src/services/types.ts` 已经提供第一版显式 view type / event type。
+- `pnpm build` 已通过。
+
+因此，本文档后续同时承担两件事：
+
+1. 记录已落地的 UI 协作接口。
+2. 标记仍然属于临时实现或后续演进的部分。
 
 ---
 
@@ -31,11 +44,17 @@
 - 工具协议雏形
 - 项目文件读写能力
 
-但还没有一套真正稳定的“前端协作接口”。
+并且已经有了第一版可用的“前端协作接口”。
 
 更准确地说：
 
-> `core` 已经像后台服务，但还缺一层面向 UI 的本地 SDK / Application Service。
+> `core` 已经像后台服务，`services` 已经承担第一版面向 UI 的本地 SDK / Application Service。
+
+不过，这一层目前仍是 v0.1 形态：
+
+- 足够支撑 UI 合作者开始接入。
+- 足够让测试页不直接依赖 core。
+- 还没有完成 Agent 停止、写入确认、会话持久化、结构化工具变更结果等高级能力。
 
 后续 UI 开发者理想上只需要关心：
 
@@ -61,7 +80,7 @@
 
 ## 三、建议分层
 
-建议后续形成如下结构：
+当前已经形成如下结构：
 
 ```txt
 src/
@@ -74,12 +93,16 @@ src/
 │   ├── rag/
 │   └── logging/
 │
-├── services/             # 面向 UI 的稳定协作接口层
+├── services/             # 面向 UI 的稳定协作接口层（已落地第一版）
 │   ├── project-service.ts
 │   ├── file-service.ts
 │   ├── settings-service.ts
 │   ├── agent-service.ts
+│   ├── generation-service.ts
 │   ├── rag-service.ts
+│   ├── element-service.ts
+│   ├── mappers.ts
+│   ├── project-runtime.ts
 │   └── types.ts
 │
 ├── stores/               # Pinia，负责 UI 状态适配
@@ -104,24 +127,69 @@ src/
 - UI 不直接调用 `core/agent/query.ts`、`core/chat/session.ts` 等内部入口。
 - `core` 可以继续迭代，但要尽量保持 `services` 的外部合同稳定。
 
+当前迁移验证：
+
+- `SessionTestView` 已迁移为 `projectStore / settingsStore / chatStore`。
+- `TestLabView` 已迁移为 store + service 调用。
+- 页面层不再直接读取 `FileSystemDirectoryHandle`、`ProjectSnapshot`、`runChatTurn`。
+
+---
+
+## 三点五、当前实现文件索引
+
+当前服务层文件：
+
+| 文件 | 职责 |
+|:-----|:-----|
+| `src/services/types.ts` | UI 协作接口类型，包含 project、file、settings、agent、RAG、element view types |
+| `src/services/project-runtime.ts` | service 内部运行时项目注册表，维护 `projectId -> ProjectSnapshot` |
+| `src/services/mappers.ts` | 将 core 内部结构映射为 UI view type |
+| `src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
+| `src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
+| `src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试 |
+| `src/services/agent-service.ts` | Agent 会话、运行一轮指令、事件映射 |
+| `src/services/generation-service.ts` | 流式生成调试接口 |
+| `src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
+| `src/services/element-service.ts` | 要素提取预览 |
+| `src/services/index.ts` | service barrel export |
+
+当前 store 文件：
+
+| 文件 | 职责 |
+|:-----|:-----|
+| `src/stores/project.ts` | 当前项目、最近项目、当前文件、项目生命周期状态 |
+| `src/stores/settings.ts` | 当前项目配置、system prompt、连接测试状态 |
+| `src/stores/chat.ts` | Agent 会话视图、运行事件、变更文件、默认目标 |
+
+对 UI 合作者来说，优先使用 store：
+
+```txt
+页面 / 组件
+-> useProjectStore()
+-> useSettingsStore()
+-> useChatStore()
+```
+
+需要更细的调试能力时，再直接使用 service。
+
 ---
 
 ## 四、ProjectService
 
 `ProjectService` 负责项目生命周期。
 
-建议接口：
+当前接口：
 
 ```ts
-type ProjectService = {
-  createProject(name: string): Promise<ProjectView>
-  openProject(): Promise<ProjectView>
-  restoreLastProject(): Promise<ProjectView | null>
-  forgetLastProject(): Promise<void>
-  closeProject(projectId: string): Promise<void>
-  refreshProject(projectId: string): Promise<ProjectView>
-  inspectProject(projectId: string): Promise<ProjectStatusView>
-}
+isProjectAccessSupported(): boolean
+createProject(name: string): Promise<ProjectView>
+openProject(): Promise<ProjectView>
+restoreLastProject(): Promise<ProjectView | null>
+getLastProjectSummary(): Promise<LastProjectSummaryView | null>
+forgetLastProject(): Promise<void>
+closeProject(projectId: string): Promise<void>
+refreshProject(projectId: string): Promise<ProjectView>
+inspectProject(projectId: string): Promise<ProjectStatusView>
 ```
 
 UI 面向的项目结构建议使用 `ProjectView`，不要直接暴露完整 `ProjectSnapshot`：
@@ -149,21 +217,25 @@ type ProjectRuntimeRegistry = {
 
 这样 UI 只拿稳定的 `projectId`，底层仍可以保留浏览器目录句柄。
 
+当前注意事项：
+
+- `openProject()` 内部会调用 `repairProject()`，因此打开项目时会温和补齐缺失默认结构。
+- UI 不需要再单独展示“修复项目结构”作为常规流程。
+- `ProjectSnapshot` 和 `FileSystemDirectoryHandle` 只保留在 service/runtime 内部。
+
 ---
 
 ## 五、FileService
 
 `FileService` 负责项目文件树、文件预览与写入。
 
-建议接口：
+当前接口：
 
 ```ts
-type FileService = {
-  listFiles(projectId: string): Promise<ProjectFileNodeView[]>
-  readFile(projectId: string, path: string): Promise<FileContentView>
-  writeFile(projectId: string, path: string, content: string): Promise<FileContentView>
-  refreshFiles(projectId: string): Promise<ProjectFileNodeView[]>
-}
+listFiles(projectId: string): Promise<ProjectFileNodeView[]>
+readFile(projectId: string, path: string): Promise<FileContentView>
+refreshFiles(projectId: string): Promise<ProjectFileNodeView[]>
+writeChapter(projectId: string, fileName: string, markdown: string): Promise<FileContentView>
 ```
 
 建议 view type：
@@ -187,7 +259,8 @@ type FileContentView = {
 
 注意：
 
-- `writeFile` 是 UI 主动保存用接口，不等同于 Agent 工具写入。
+- 当前暂未暴露通用 `writeFile` 给 UI。
+- `writeChapter` 是 Test Lab 调试生成结果落盘用接口。
 - Agent 写入应通过 `AgentService` 事件通知 UI，例如 `file-changed`。
 - 文件路径统一使用项目内相对路径。
 
@@ -197,16 +270,16 @@ type FileContentView = {
 
 `SettingsService` 负责项目配置读写和模型连接测试。
 
-建议接口：
+当前接口：
 
 ```ts
-type SettingsService = {
-  getConfig(projectId: string): Promise<ProjectConfigView>
-  updateConfig(projectId: string, patch: ProjectConfigPatch): Promise<ProjectConfigView>
-  testLlm(config: LlmConfigView): Promise<ConnectionTestResult>
-  testEmbedding(config: EmbeddingConfigView): Promise<ConnectionTestResult>
-  testRerank(config: RerankConfigView): Promise<ConnectionTestResult>
-}
+getConfig(projectId: string): Promise<ProjectConfigView>
+updateConfig(projectId: string, patch: ProjectConfigPatch): Promise<ProjectConfigView>
+readSystemPrompt(projectId: string): Promise<string>
+writeSystemPrompt(projectId: string, content: string): Promise<void>
+testLlm(config: LlmConfigView): Promise<ConnectionTestResultView>
+testEmbedding(config: EmbeddingConfigView): Promise<ConnectionTestResultView>
+testRerank(config: RerankConfigView): Promise<ConnectionTestResultView>
 ```
 
 建议 UI 使用 patch 更新配置，而不是每次提交完整 `novel.config.json`：
@@ -223,22 +296,33 @@ type ProjectConfigPatch = Partial<{
 
 内部实现仍可以整文件覆盖写回配置文件。
 
+当前已经有 `useSettingsStore()` 封装常用 UI 状态：
+
+```ts
+const settingsStore = useSettingsStore()
+
+await settingsStore.loadSettings(projectId)
+await settingsStore.saveConfig(projectId, patch)
+await settingsStore.saveSystemPrompt(projectId, content)
+await settingsStore.testLlmConfig(config)
+```
+
 ---
 
 ## 七、AgentService
 
 `AgentService` 是最关键的协作接口。UI 不应直接知道 `query()`、`runChatTurn()`、底层 `AgentMessage` 或工具执行细节。
 
-建议接口：
+当前接口：
 
 ```ts
-type AgentService = {
-  createSession(projectId: string): Promise<ChatSessionView>
-  getSession(projectId: string): Promise<ChatSessionView | null>
-  runTurn(input: RunAgentTurnInput): Promise<RunAgentTurnResult>
-  stopRun(projectId: string, sessionId: string): Promise<void>
-}
+deriveTargetFromPath(path?: string | null): ChatTargetView | null
+createSession(projectId: string): Promise<ChatSessionView>
+getSession(projectId: string): Promise<ChatSessionView | null>
+runTurn(input: RunAgentTurnInput): Promise<RunAgentTurnResult>
 ```
+
+`stopRun()` 尚未落地，后续需要和 `AbortController`、Query Guard、队列策略一起设计。
 
 建议输入：
 
@@ -259,14 +343,26 @@ type RunAgentTurnResult = {
   projectId: string
   sessionId: string
   targetPath?: string
-  writtenPath?: string
-  changedFiles: Array<{
-    path: string
-    changeType: 'created' | 'updated'
-  }>
+  changedFiles: ChangedFileView[]
   session: ChatSessionView
 }
 ```
+
+当前文件变更类型：
+
+```ts
+type ChangedFileView =
+  | { type: 'created'; path: string }
+  | { type: 'updated'; path: string }
+  | { type: 'renamed'; fromPath: string; toPath: string }
+  | { type: 'deleted'; path: string; trashPath?: string }
+```
+
+当前限制：
+
+- `changedFiles` 目前由 `agent-service` 根据工具调用和工具结果文本保守推导。
+- 后续更稳的做法是让 core 工具层直接返回结构化变更结果。
+- 写入确认、暂停恢复、停止运行尚未落地。
 
 ---
 
@@ -285,7 +381,7 @@ type AgentUiEvent =
   | { type: 'model-finish'; step: number; toolCallCount: number; finishReason?: string }
   | { type: 'tool-call'; toolCall: ToolCallView }
   | { type: 'tool-result'; toolResult: ToolResultView }
-  | { type: 'file-changed'; path: string; changeType: 'created' | 'updated' }
+  | { type: 'file-changed'; file: ChangedFileView }
   | { type: 'confirmation-required'; request: FileChangeConfirmationView }
   | { type: 'run-error'; error: NovAiError }
   | { type: 'run-finish'; result: RunAgentTurnResult }
@@ -337,14 +433,16 @@ type ChatMessageView =
 
 RAG 当前适合先作为调试和状态接口暴露。等 `RagSearch` 正式进入 Agent Loop 后，UI 主要通过 Agent 事件观察检索过程。
 
-建议接口：
+当前接口：
 
 ```ts
-type RagService = {
-  getIndexStatus(projectId: string): Promise<ProjectIndexStatusView | null>
-  rebuildIndex(projectId: string): Promise<IndexBuildResultView>
-  search(projectId: string, query: string): Promise<RetrievalResultView>
-}
+inspectIndex(projectId: string): Promise<ProjectIndexMetaView | null>
+rebuildIndex(projectId: string): Promise<IndexBuildResultView>
+runRagDebug(projectId: string, query: string): Promise<{
+  draft: GenerationContextDraftView
+  explanations: RetrievalExplanationView[]
+  recalledCount: number
+}>
 ```
 
 注意当前代码现状：
@@ -352,6 +450,37 @@ type RagService = {
 - 已有基础 Embedding 请求、IndexedDB 向量索引、余弦检索与 Rerank 调试链路。
 - 当前尚未真正引入 Orama 依赖。
 - 当前 `RagSearch` 尚未接入新的 Agent Loop。
+
+---
+
+## 九点五、GenerationService 与 ElementService
+
+这两组接口主要服务 Test Lab 调试能力。
+
+`GenerationService`：
+
+```ts
+streamGeneration(
+  input: LlmStreamInputView,
+  onEvent: (event: LlmStreamEventView) => void,
+): Promise<string>
+```
+
+`ElementService`：
+
+```ts
+previewElementExtraction(input: {
+  chapterMarkdown: string
+  chapterPath?: string
+  systemPrompt?: string
+}): Promise<ElementExtractionResultView>
+```
+
+当前定位：
+
+- `streamGeneration` 是单次流式生成调试接口，不是 Agent 主工作流。
+- 正式创作流程应优先走 `AgentService.runTurn()`。
+- `previewElementExtraction` 当前仍是预览/占位能力，后续要和要素写入协议一起完善。
 
 因此接口文档中应避免把“Orama 已落地”作为实现事实。
 
@@ -426,43 +555,70 @@ UI Component
 
 ---
 
-## 十二、建议落地顺序
+## 十二、落地状态与下一步
 
-考虑当前还有“工具系统升级”任务并行，建议等工具系统边界稳定后再开始落地接口层。
+当前已完成：
 
-推荐顺序：
+1. 已新增 `src/services/types.ts`
+   - 已定义 `ProjectView`
+   - 已定义 `FileContentView`
+   - 已定义 `ChatSessionView`
+   - 已定义 `AgentUiEvent`
+   - 已定义 `NovAiError`
 
-1. 新增 `src/services/types.ts`
-   - 定义 `ProjectView`
-   - 定义 `FileContentView`
-   - 定义 `ChatSessionView`
-   - 定义 `AgentUiEvent`
-   - 定义 `NovAiError`
-
-2. 新增运行时项目注册表
+2. 已新增运行时项目注册表
+   - `src/services/project-runtime.ts`
    - 由 service 内部维护 `projectId -> ProjectSnapshot`
    - UI 不再持有 `FileSystemDirectoryHandle`
 
-3. 实现 `ProjectService`
-   - 包装创建、打开、修复、恢复、关闭项目
+3. 已实现 `ProjectService`
+   - 包装创建、打开、恢复、关闭、刷新、检查项目
    - 统一返回 `ProjectView`
 
-4. 实现 `FileService`
-   - 包装文件树、文件读取、刷新
+4. 已实现 `FileService`
+   - 包装文件树、文件读取、刷新、章节写入
 
-5. 实现 `SettingsService`
-   - 包装配置读写和模型连接测试
+5. 已实现 `SettingsService`
+   - 包装配置读写、system prompt 读写和模型连接测试
 
-6. 实现 `AgentService`
+6. 已实现 `AgentService`
    - 包装 `runChatTurn`
-   - 映射 Agent 内部事件到 `AgentUiEvent`
+   - 映射 Agent 内部消息到 `ChatMessageView`
    - 输出 `file-changed`、`run-finish` 等 UI 事件
 
-7. 让 Pinia store 只调用 service
-   - 逐步减少页面直接 import `core/*`
+7. 已让 Pinia store 调用 service
+   - `projectStore`
+   - `settingsStore`
+   - `chatStore`
 
-8. 最后再让正式 UI 只依赖 store 或 service
-   - 前端展示层不再直接碰内部实现模块
+8. 已迁移测试页面
+   - `SessionTestView`
+   - `TestLabView`
+   - `src/views`、`src/stores` 当前不再直接 import `src/core/*`
+
+建议下一步：
+
+1. 将 `services/types.ts` 按领域拆分
+   - `project-types.ts`
+   - `agent-types.ts`
+   - `rag-types.ts`
+   - `settings-types.ts`
+
+2. 补齐结构化错误转换
+   - 当前 `NovAiError` 类型已定义
+   - 但多数 service 仍沿用内部普通 Error 或 store 中的 message 兜底
+
+3. 补齐 Agent 停止与写入确认
+   - `stopRun`
+   - `confirmation-required`
+   - 写入 diff 预览
+   - 暂停 / 恢复
+
+4. 将工具层结构化变更结果上抛到 `AgentService`
+   - 取代当前基于工具文本摘要推导 `changedFiles` 的临时方式
+
+5. 让正式 UI 只依赖 store 或 service
+   - 前端展示层继续避免直接碰内部实现模块
 
 ---
 
@@ -482,14 +638,21 @@ UI Component
 - `RunAgentTurnResult.changedFiles`
 - `ToolCallView / ToolResultView`
 
-建议先完成工具系统升级，再根据最终工具事件模型落地 `AgentService`。
+当前工具系统升级已经完成第一轮，`AgentService` 也已经落地第一版。但以下接口仍会继续受工具系统演进影响：
 
-本文档在此之前作为协作记忆，不急于转成代码。
+- `ToolCallView`
+- `ToolResultView`
+- `ChangedFileView`
+- `confirmation-required`
+- `file-changed`
+- `RunAgentTurnResult.changedFiles`
+
+因此，UI 可以先使用这些接口做展示，但不要把它们视为最终协议。
 
 ---
 
 ## 十四、一句话结论
 
-NovAI 后续需要把 `core` 当作本地后台能力层，把 `services` 当作面向 UI 的稳定接口层。
+NovAI 当前已经开始把 `core` 当作本地后台能力层，把 `services` 当作面向 UI 的稳定接口层。
 
-你可以继续演进 `core`，UI 合作者只依赖 `services/types.ts`、service 方法和 `AgentUiEvent`。这样双方可以并行开发，减少互相踩代码的概率。
+你可以继续演进 `core`，UI 合作者优先依赖 `stores`，必要时依赖 `services/types.ts`、service 方法和 `AgentUiEvent`。这样双方可以并行开发，减少互相踩代码的概率。
