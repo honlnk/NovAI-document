@@ -1,6 +1,6 @@
 # NovAI 工具系统升级设计
 
-最后更新：2026-04-30
+最后更新：2026-05-24
 
 ## 一、文档目的
 
@@ -8,8 +8,8 @@
 
 当前 NovAI 已经具备第一版 Agent Loop，并接入了 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 七个项目文件工具。但随着产品方向进一步明确，现有工具层仍有几个后续需要补齐的问题：
 
-- `ReadFile` 基本可用，但还没有形成读后状态记录。
-- `EditFile` 已强化精确替换能力，但仍缺少工具层强制“先读后改”和文件过期保护。
+- `ReadFile` 已形成读后状态记录，可为后续写入校验提供 `readFileState`。
+- `EditFile` 已强化精确替换能力，并在工具层强制“先读后改”和文件过期保护。
 - `CreateFile` 明确保持窄语义，只新建文件，不覆盖已有文件。
 - `RenameFile / DeleteFile` 已补齐基础整理能力，但还没有用户确认与撤销 UI。
 - `RagSearch` 尚未作为正式 Agent tool 接入新 Agent Loop。
@@ -67,8 +67,8 @@ NovAI 的聊天界面是 Agent 控制面板，真正的故事资产应该落在�
 | :-- | :-- | :-- |
 | `ListDirectory` | 查看项目内某个已存在目录的直接子项，可选择显示隐藏项 | 只负责目录浏览，不递归读取文件正文 |
 | `FindFiles` | 按 glob 路径模式查找文件，支持隐藏项与数量上限 | 不是内容搜索工具，语义搜索未来由 `RagSearch` 承担 |
-| `ReadFile` | 读取项目内 `.md / .json / .txt` 文件，支持行号、`offset / limit`、大文件完整读取限制 | 没有记录读状态，没有读取去重，没有文件版本校验 |
-| `EditFile` | 精确替换已有文本片段，支持 `replaceAll`，强化重复文本消歧与错误提示 | 没有工具层强制先读后改，没有外部修改检测，diff 能力不足 |
+| `ReadFile` | 读取项目内 `.md / .json / .txt` 文件，支持行号、`offset / limit`、大文件完整读取限制，并记录 `readFileState` | 没有读取去重；局部读取后的写入策略仍需继续细化 |
+| `EditFile` | 精确替换已有文本片段，支持 `replaceAll`，强化重复文本消歧与错误提示，并强制校验 `readFileState` 与文件过期状态 | diff 能力不足；写入前确认 UI 尚未接入 |
 | `CreateFile` | 创建新文本文件，父目录自动创建，存在则失败 | 明确不承担覆盖已有文件职责 |
 | `RenameFile` | 重命名或移动单个文本文件，目标存在则失败 | 暂不支持目录移动 |
 | `DeleteFile` | 将单个文本文件移入 `.novel/trash` 回收站 | 暂无恢复工具和确认 UI |
@@ -93,7 +93,7 @@ Claude Code 的方式不是每轮塞完整文件树，而是提供 `Glob / Grep 
 
 NovAI 当前已经开始采用这种“导航工具 + 文件读取”的模式。
 
-### 4.2 `ReadFile` 只完成了读取，没有形成写入保护基础
+### 4.2 `ReadFile` 已形成写入保护基础
 
 在 Claude Code 中，`Read` 不只是把文件内容返回给模型，它还会记录读取状态，用于后续 `Edit / Write` 判断：
 
@@ -102,25 +102,26 @@ NovAI 当前已经开始采用这种“导航工具 + 文件读取”的模式�
 - 文件读取时的修改时间
 - 后续写入前文件是否被外部修改
 
-NovAI 当前 `ReadFile` 没有写入 session-level `readFileState`，因此 `EditFile` 只能依靠 prompt 要求模型先读文件，工具层无法强制。
+NovAI 当前 `ReadFile` 已经在 Agent Query 运行期写入 `readFileState`，并记录路径、内容哈希、更新时间与文件大小。这个状态会被同一轮工具执行中的 `EditFile` 复用，用于判断模型是否确实先读取过目标文件，以及目标文件是否在读取后发生变化。
 
-### 4.3 `EditFile` 缺少协作安全
+### 4.3 `EditFile` 已具备基础协作安全
 
 当前 `EditFile` 的逻辑是：
 
 1. 读取当前文件内容。
-2. 查找 `oldText`。
-3. 替换为 `newText`。
-4. 写回文件。
+2. 检查目标文件是否存在对应的 `readFileState`。
+3. 对比读取时与写入前的内容哈希。
+4. 查找 `oldText`。
+5. 替换为 `newText`。
+6. 写回文件。
 
-这适合 MVP，但长期看存在风险：
+这已经能覆盖 MVP 阶段最重要的协作风险：
 
-- 模型没有读过文件也能直接改。
-- 如果用户在模型读取后修改过文件，工具无法发现。
-- 返回结果只是摘要，没有结构化 diff。
-- 对整章级改写不友好。
+- 模型没有读过目标文件时，工具会拒绝修改。
+- 如果用户或其他工具在 `ReadFile` 后改过文件，工具会拒绝继续写入。
+- `oldText` 仍必须能匹配文件中的实际内容，重复文本默认不会盲改多处。
 
-后续应把 `EditFile` 升级为真正的“基于已读内容的精确替换工具”，在工具层接入 `readFileState` 与文件过期保护。
+后续仍需要补齐结构化 diff、写入前确认 UI，以及更适合整章级改写的高风险写入策略。
 
 ### 4.4 `WriteFile` 暂缓，不作为当前必需工具
 
@@ -131,7 +132,7 @@ NovAI 当前选择暂缓实现 `WriteFile`：
 - `CreateFile` 保持低风险新建语义，目标已存在时失败。
 - 已有文件的修改优先通过 `ReadFile -> EditFile` 完成。
 - 小文件或短章节的完整重写可以先用 `EditFile` 做整段替换。
-- 等 `readFileState`、写前过期检查、用户确认和 diff 预览补齐后，再评估是否引入 `WriteFile`。
+- 等用户确认和 diff 预览补齐后，再评估是否引入 `WriteFile`。
 
 因此 `WriteFile` 不是当前工具系统的立即目标，而是未来高风险写入能力的候选。
 
@@ -198,7 +199,7 @@ NovAI 当前选择暂缓实现 `WriteFile`：
 
 - `CreateFile` 是低风险新建工具，不承担覆盖已有文件职责。
 - 已有文件修改请使用 `ReadFile -> EditFile`。
-- 未来是否新增 `WriteFile`，应等读状态、过期保护和确认 UI 补齐后再评估。
+- 未来是否新增 `WriteFile`，应等确认 UI 与 diff 预览补齐后再评估。
 
 ### 5.4 `ListDirectory`
 
@@ -458,12 +459,11 @@ Claude Code 中 BashTool 的部分使用场景，NovAI 应以专用工具替代�
 
 优先级建议如下：
 
-1. 为 `ReadFile` 增加 `readFileState`。
-2. 升级 `EditFile`，强制先读后改，并检查文件过期。
-3. 为写入类工具增加执行前确认与 diff / 摘要预览。
-4. 评估是否需要 `RestoreFile` 或回收站 UI。
-5. 后续接入 `RagSearch`，平替内容级搜索。
-6. 等安全机制补齐后，再评估是否新增高风险 `WriteFile`。
+1. 为写入类工具增加执行前确认与 diff / 摘要预览。
+2. 评估是否需要 `RestoreFile` 或回收站 UI。
+3. 后续接入 `RagSearch`，平替内容级搜索。
+4. 继续细化局部读取后的写入策略。
+5. 等安全机制补齐后，再评估是否新增高风险 `WriteFile`。
 
 ## 十、总结
 
