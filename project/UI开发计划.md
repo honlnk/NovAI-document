@@ -120,13 +120,13 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 1.1 更新路由配置，添加三个新页面路由
-- [ ] 1.2 创建 `HomeView.vue` 首页骨架
-- [ ] 1.3 创建 `ProjectView.vue` 主工作区骨架（三栏布局）
-- [ ] 1.4 创建 `SettingsView.vue` 设置页骨架
-- [ ] 1.5 创建布局组件：`FileTreeSidebar.vue`、`ChatPanel.vue`、`ContentPanel.vue`
-- [ ] 1.6 实现响应式布局（移动端覆盖式抽屉）
-- [ ] 1.7 添加基础 UI 组件：`Button.vue`、`Input.vue`
+- [x] 1.1 更新路由配置，添加三个新页面路由
+- [x] 1.2 创建 `HomeView.vue` 首页骨架
+- [x] 1.3 创建 `ProjectView.vue` 主工作区骨架（三栏布局）
+- [x] 1.4 创建 `SettingsView.vue` 设置页骨架
+- [x] 1.5 创建布局组件：`FileTreeSidebar.vue`、`ChatPanel.vue`、`ContentPanel.vue`
+- [x] 1.6 实现响应式布局（移动端覆盖式抽屉）
+- [x] 1.7 添加基础 UI 组件：`Button.vue`、`Input.vue`
 
 **交付标准**：
 
@@ -142,13 +142,13 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 2.1 实现 `ProjectCard.vue` 项目卡片组件
-- [ ] 2.2 实现 `CreateProjectDialog.vue` 新建项目对话框
-- [ ] 2.3 集成 `projectStore`，显示最近项目列表
-- [ ] 2.4 实现创建项目功能（调用 `projectService.createProject`）
-- [ ] 2.5 实现打开项目功能（调用 `projectService.openProject`）
-- [ ] 2.6 实现恢复上次项目功能（调用 `projectService.restoreLastProject`）
-- [ ] 2.7 实现空状态引导
+- [x] 2.1 实现 `ProjectCard.vue` 项目卡片组件
+- [x] 2.2 实现 `CreateProjectDialog.vue` 新建项目对话框
+- [x] 2.3 集成 `projectStore`，显示最近项目列表
+- [x] 2.4 实现创建项目功能（调用 `projectService.createProject`）
+- [x] 2.5 实现打开项目功能（调用 `projectService.openProject`）
+- [x] 2.6 实现恢复上次项目功能（调用 `projectService.restoreLastProject`）
+- [x] 2.7 实现空状态引导
 
 **交付标准**：
 
@@ -165,13 +165,13 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 3.1 实现 `TreeNode.vue` 文件树节点组件（支持递归渲染）
-- [ ] 3.2 集成 `fileService.listFiles`，加载项目文件树
-- [ ] 3.3 实现文件夹展开/折叠功能
-- [ ] 3.4 实现文件点击选择功能
-- [ ] 3.5 实现文件树刷新功能（AI 新建/修改文件后自动更新）
-- [ ] 3.6 添加功能入口按钮（校对、整理、版本管理、设置）
-- [ ] 3.7 深色主题样式（参考 gpt-image-studio）
+- [x] 3.1 实现 `TreeNode.vue` 文件树节点组件（支持递归渲染）
+- [x] 3.2 集成 `fileService.listFiles`，加载项目文件树
+- [x] 3.3 实现文件夹展开/折叠功能
+- [x] 3.4 实现文件点击选择功能
+- [x] 3.5 实现文件树刷新功能（AI 新建/修改文件后自动更新）
+- [x] 3.6 添加功能入口按钮（校对、整理、版本管理、设置）
+- [x] 3.7 深色主题样式（参考 gpt-image-studio）
 
 **交付标准**：
 
@@ -188,15 +188,15 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 4.1 实现 `MessageList.vue` 消息列表组件
-- [ ] 4.2 实现 `MessageItem.vue` 单条消息组件（支持用户消息、AI 消息、工具调用）
-- [ ] 4.3 实现 `ChatComposer.vue` 输入区域组件
-- [ ] 4.4 实现 `ToolCallCard.vue` 工具调用展示组件
-- [ ] 4.5 集成 `chatStore`，显示消息列表
-- [ ] 4.6 实现发送消息功能（调用 `agentService.runTurn`）
-- [ ] 4.7 实现流式消息展示（监听 `AgentUiEvent`）
-- [ ] 4.8 实现消息自动滚动到底部
-- [ ] 4.9 实现 Token 用量指示器（预留）
+- [x] 4.1 实现 `MessageList.vue` 消息列表组件
+- [x] 4.2 实现 `MessageItem.vue` 单条消息组件（支持用户消息、AI 消息、工具调用）
+- [x] 4.3 实现 `ChatComposer.vue` 输入区域组件
+- [x] 4.4 实现 `ToolCallCard.vue` 工具调用展示组件
+- [x] 4.5 集成 `chatStore`，显示消息列表
+- [x] 4.6 实现发送消息功能（调用 `agentService.runTurn`）
+- [x] 4.7 实现流式消息展示（监听 `AgentUiEvent`）
+- [x] 4.8 实现消息自动滚动到底部
+- [x] 4.9 实现 Token 用量指示器（预留）
 
 **交付标准**：
 
@@ -213,14 +213,14 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 5.1 实现 `FileContentView.vue` 文件内容预览组件
-- [ ] 5.2 实现 `GenerationPreview.vue` 生成预览组件
-- [ ] 5.3 实现 `EmptyContent.vue` 空状态组件
-- [ ] 5.4 实现面板展开/折叠功能
-- [ ] 5.5 集成 `fileService.readFile`，加载文件内容
-- [ ] 5.6 实现 Markdown 渲染预览（可选，第一版可以用纯文本）
-- [ ] 5.7 实现"预览/原始"切换功能
-- [ ] 5.8 响应式设计（移动端覆盖式抽屉）
+- [x] 5.1 实现 `FileContentView.vue` 文件内容预览组件
+- [x] 5.2 实现 `GenerationPreview.vue` 生成预览组件
+- [x] 5.3 实现 `EmptyContent.vue` 空状态组件
+- [x] 5.4 实现面板展开/折叠功能
+- [x] 5.5 集成 `fileService.readFile`，加载文件内容
+- [x] 5.6 实现 Markdown 渲染预览（可选，第一版可以用纯文本）
+- [x] 5.7 实现"预览/原始"切换功能
+- [x] 5.8 响应式设计（移动端覆盖式抽屉）
 
 **交付标准**：
 
@@ -237,14 +237,14 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 6.1 实现选项卡布局
-- [ ] 6.2 实现 `LlmSettingsPanel.vue` LLM 配置面板
-- [ ] 6.3 实现 `EmbeddingSettingsPanel.vue` Embedding 配置面板
-- [ ] 6.4 实现 `RerankSettingsPanel.vue` Rerank 配置面板
-- [ ] 6.5 实现 `ProjectSettingsPanel.vue` 项目设置面板
-- [ ] 6.6 集成 `settingsStore`，加载和保存配置
-- [ ] 6.7 实现测试连接功能（调用 `settingsService.testLlm` 等）
-- [ ] 6.8 实现返回主工作区功能
+- [x] 6.1 实现选项卡布局
+- [x] 6.2 实现 `LlmSettingsPanel.vue` LLM 配置面板
+- [x] 6.3 实现 `EmbeddingSettingsPanel.vue` Embedding 配置面板
+- [x] 6.4 实现 `RerankSettingsPanel.vue` Rerank 配置面板
+- [x] 6.5 实现 `ProjectSettingsPanel.vue` 项目设置面板
+- [x] 6.6 集成 `settingsStore`，加载和保存配置
+- [x] 6.7 实现测试连接功能（调用 `settingsService.testLlm` 等）
+- [x] 6.8 实现返回主工作区功能
 
 **交付标准**：
 
@@ -261,14 +261,14 @@ packages/app/src/
 
 **任务清单**：
 
-- [ ] 7.1 实现首次使用引导（内容区显示引导提示）
-- [ ] 7.2 实现错误处理和 Toast 提示
-- [ ] 7.3 实现加载状态展示
-- [ ] 7.4 优化滚动条样式（参考 gpt-image-studio）
-- [ ] 7.5 优化移动端适配
-- [ ] 7.6 实现文件树实时更新（AI 操作后刷新）
-- [ ] 7.7 实现右侧面板自动展开（AI 生成时）
-- [ ] 7.8 测试和修复 Bug
+- [x] 7.1 实现首次使用引导（内容区显示引导提示）
+- [x] 7.2 实现错误处理和 Toast 提示
+- [x] 7.3 实现加载状态展示
+- [x] 7.4 优化滚动条样式（参考 gpt-image-studio）
+- [x] 7.5 优化移动端适配
+- [x] 7.6 实现文件树实时更新（AI 操作后刷新）
+- [x] 7.7 实现右侧面板自动展开（AI 生成时）
+- [x] 7.8 测试和修复 Bug
 
 **交付标准**：
 
@@ -418,26 +418,26 @@ packages/app/src/
 
 ### 8.1 功能验收
 
-- [ ] 可以创建、打开、恢复项目
-- [ ] 可以浏览项目文件树
-- [ ] 可以与 AI 对话
-- [ ] 可以查看文件预览
-- [ ] 可以查看 AI 生成过程
-- [ ] 可以配置模型参数
+- [x] 可以创建、打开、恢复项目
+- [x] 可以浏览项目文件树
+- [x] 可以与 AI 对话
+- [x] 可以查看文件预览
+- [x] 可以查看 AI 生成过程
+- [x] 可以配置模型参数
 
 ### 8.2 体验验收
 
-- [ ] 页面加载流畅
-- [ ] 操作响应及时
-- [ ] 错误提示清晰
-- [ ] 移动端适配良好
+- [x] 页面加载流畅
+- [x] 操作响应及时
+- [x] 错误提示清晰
+- [x] 移动端适配良好
 
 ### 8.3 代码验收
 
-- [ ] TypeScript 类型完整
-- [ ] 组件职责清晰
-- [ ] 样式规范统一
-- [ ] 无明显 Bug
+- [x] TypeScript 类型完整
+- [x] 组件职责清晰
+- [x] 样式规范统一
+- [x] 无明显 Bug
 
 ---
 
