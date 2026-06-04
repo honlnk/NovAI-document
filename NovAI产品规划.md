@@ -49,7 +49,7 @@ status: draft
 | 项目形态  | 纯前端（无自建后端）    | 本地化运行，LLM 等能力通过云端 API 调用       |
 | 桌面端打包 | Tauri（候选）      | 轻量，支持 Windows / macOS |
 | 移动端打包 | Capacitor（候选）  | 支持 Android 安装包        |
-| 向量检索 | Orama | 纯 JS 向量搜索引擎，存储 Embedding 向量索引，加速 RAG 语义检索（见下方说明） |
+| 向量检索 | Orama | 纯 JS 向量搜索引擎，维护可检索的向量文档结构；数据通过 IndexedDB 持久化，加速 RAG 语义检索（见下方说明） |
 | 版本管理  | Git            | 校对版本管理、内容回退           |
 | 文件格式  | Markdown / JSON | 章节内容、要素数据以 .md 存储，项目配置以 JSON 存储 |
 
@@ -59,7 +59,7 @@ status: draft
 > | 存储方式 | 存什么 | 谁在用 |
 > |:---------|:-------|:-------|
 > | **.md / JSON 文件** | 章节内容、人物卡片、时间线、项目配置等**正式数据** | 人看的 + AI 读的 |
-> | **Orama（IndexedDB）** | 要素的 Embedding 向量，用于**语义相似度检索** | 仅工具内部使用，用户无需关心 |
+> | **Orama + IndexedDB** | 要素的 Embedding 向量与检索元数据，用于**语义相似度检索**；Orama 负责检索，IndexedDB 负责本地持久化 | 仅工具内部使用，用户无需关心 |
 >
 > .md 和 JSON 是"真相来源（Source of Truth）"，Orama 索引只是"检索加速用的缓存"。删掉 Orama 索引，工具重新扫描 .md 并调用 Embedding API 重建索引即可，数据不会丢失。
 
