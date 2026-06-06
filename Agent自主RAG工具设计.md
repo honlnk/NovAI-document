@@ -1,18 +1,20 @@
 # NovAI Agent 自主 RAG 工具设计
 
-最后更新：2026-06-05
+最后更新：2026-06-07
 
 ## 一、文档目的
 
 本文档记录 NovAI 下一阶段 RAG 工具链的产品与技术设计共识。
 
-当前 NovAI 已经完成第一版文件工具 Agent Loop，模型可以通过 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 读写小说项目文件。RAG 相关代码也已经具备向量库构建、Embedding 检索、Rerank 调试等基础能力，但还没有作为 Agent 可主动调用的正式工具进入主工作流。
+当前 NovAI 已经完成第一版文件工具 Agent Loop，模型可以通过 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 读写小说项目文件。RAG 相关代码已经具备向量索引构建、Embedding 检索、Rerank 调试等基础能力，并且 `RagSearch` 已作为 Agent 可主动调用的正式工具进入主工作流。
 
 本阶段要解决的问题是：
 
 > RAG 不应该只是系统每轮自动塞给模型的背景材料，而应该成为 Agent 可以主动选择、主动调用、主动追问的小说记忆工具。
 
 因此，本文档明确采用“方案 A”：**由 Agent 自主决定什么时候调用 `RagSearch`，而不是系统在每一轮对话开始前固定自动检索。**
+
+截至 2026-06-07，该方向已完成 MVP 基础接入：正式设置页可查看并手动重建 RAG 索引，新的 Agent Loop 已能暴露 `RagSearch` 工具。后续重点转为验证真实创作任务中的触发率、召回质量与上下文使用策略。
 
 ## 二、核心决策
 
@@ -101,14 +103,18 @@ Agent 应该能够自主执行类似流程：
 
 ### 4.2 输入结构
 
-MVP 阶段建议输入保持克制：
+当前 MVP 输入保持克制：
 
 ```ts
 type RagSearchInput = {
   query: string
   topK?: number
-  type?: Array<'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'>
-  tags?: string[]
+  finalLimit?: number
+  filters?: {
+    type?: Array<'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'>
+    tags?: string[]
+    lastUpdatedChapter?: string
+  }
 }
 ```
 
@@ -118,81 +124,81 @@ type RagSearchInput = {
 | :-- | :-- |
 | `query` | 必填，语义检索查询，应该描述当前创作任务需要回忆什么 |
 | `topK` | 可选，最多召回多少条候选，默认使用项目配置 |
-| `type` | 可选，限定要素类型 |
-| `tags` | 可选，限定标签 |
-
-第一版可以先只实现 `query / topK / type`，`tags` 可以稍后补。
+| `finalLimit` | 可选，最终返回给 Agent 的上下文条数，默认使用项目配置 |
+| `filters.type` | 可选，限定要素类型 |
+| `filters.tags` | 可选，限定标签 |
+| `filters.lastUpdatedChapter` | 可选，限定最后关联章节 |
 
 ### 4.3 输出结构
 
-工具返回应兼顾模型可用性和 UI 可解释性：
+工具返回应兼顾模型可用性和 UI 可解释性。当前实现采用以下结构：
 
 ```ts
-type RagSearchHit = {
-  id: string
-  sourcePath: string
-  type: 'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'
-  name: string
-  summary: string
-  tags: string[]
-  score?: number
-  rerankScore?: number
-  snippet: string
-}
-
 type RagSearchOutput = {
   query: string
-  hits: RagSearchHit[]
-  total: number
-  vectorStoreStatus: 'empty' | 'building' | 'ready' | 'stale' | 'rebuilding' | 'error'
+  recalledCount: number
+  returnedCount: number
+  usedRerank: boolean
+  candidates: Array<{
+    id: string
+    sourcePath: string
+    type: 'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'
+    name: string
+    summary: string
+    retrievalText: string
+    tags: string[]
+    lastUpdatedChapter: string
+    relatedChapters: string[]
+    score?: number
+    rerankScore?: number
+  }>
 }
 ```
 
-其中 `sourcePath` 非常重要。Agent 拿到摘要后，如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。
+其中 `sourcePath` 非常重要。Agent 拿到摘要和 `retrievalText` 后，如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。
 
 字段说明：
 
 | 字段 | 所属类型 | 说明 |
 | :-- | :-- | :-- |
 | `query` | `RagSearchOutput` | 本次实际用于检索的查询文本。它可能来自用户原始指令，也可能是 Agent 为了更好召回要素而改写后的检索 query。保留该字段是为了让 UI、日志和调试面板解释 Agent 到底查了什么。 |
-| `hits` | `RagSearchOutput` | 本次返回给 Agent 的命中要素列表。每一项都是一条从向量库召回的要素记录，可能已经经过 Rerank 精排。 |
-| `total` | `RagSearchOutput` | 本次返回的命中数量。MVP 阶段可以等同于 `hits.length`；后续如果要区分粗召回数量和最终返回数量，可以再拆成 `recalledCount / returnedCount`。 |
-| `vectorStoreStatus` | `RagSearchOutput` | 当前项目向量库状态。`empty` 表示没有可检索要素，`building` 表示首次构建中，`ready` 表示可用，`stale` 表示要素文件或配置变化导致向量库过期，`rebuilding` 表示正在重建，`error` 表示构建或检索失败。 |
-| `id` | `RagSearchHit` | 要素在向量库中的稳定 ID，用于去重、更新、追踪和调试。它不替代真实文件路径，真实内容仍以 `sourcePath` 指向的 Markdown 文件为准。 |
-| `sourcePath` | `RagSearchHit` | 命中要素对应的项目内 Markdown 文件路径，例如 `elements/characters/林远.md`。这是从检索结果回到真实文件的桥。Agent 如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。 |
-| `type` | `RagSearchHit` | 要素类型，用于告诉 Agent 和 UI 这条命中属于人物、地点、时间线、情节还是世界观设定。它也可以用于检索过滤和结果分组。 |
-| `name` | `RagSearchHit` | 要素名称，例如人物名、地点名、事件名或设定名。用于展示，也方便 Agent 快速判断命中对象。 |
-| `summary` | `RagSearchHit` | 要素摘要，通常来自要素文件 frontmatter，或由要素正文生成。它用于让 Agent 在不读取完整文件的情况下快速判断这条命中是否有价值。 |
-| `tags` | `RagSearchHit` | 要素标签，例如 `主角 / 黑风谷 / 伏笔 / 旧王朝`。标签可用于筛选、解释和后续 UI 分组。 |
-| `score` | `RagSearchHit` | 向量召回分数，表示 query embedding 与要素 embedding 的相似程度。它主要用于排序、调试和解释，不应直接展示成百分比准确率。 |
-| `rerankScore` | `RagSearchHit` | Rerank 精排分数。开启 Rerank 时，该字段表示精排模型重新判断后的相关性；未开启或精排失败时可以为空。 |
-| `snippet` | `RagSearchHit` | 命中文本片段，用于解释为什么召回这条要素。它不是完整文件内容，而是从检索文本或要素正文中截取的一小段，帮助 Agent 判断是否需要进一步 `ReadFile`。 |
+| `recalledCount` | `RagSearchOutput` | 粗召回候选数量。 |
+| `returnedCount` | `RagSearchOutput` | 最终返回给 Agent 的上下文数量。 |
+| `usedRerank` | `RagSearchOutput` | 本次是否启用了 Rerank 链路。 |
+| `candidates` | `RagSearchOutput` | 本次返回给 Agent 的命中要素列表。每一项都是一条从向量库召回的要素记录，可能已经经过 Rerank 精排和最终上下文筛选。 |
+| `id` | `RagSearchCandidate` | 要素在向量库中的稳定 ID，用于去重、更新、追踪和调试。它不替代真实文件路径，真实内容仍以 `sourcePath` 指向的 Markdown 文件为准。 |
+| `sourcePath` | `RagSearchCandidate` | 命中要素对应的项目内 Markdown 文件路径，例如 `elements/characters/林远.md`。这是从检索结果回到真实文件的桥。Agent 如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。 |
+| `type` | `RagSearchCandidate` | 要素类型，用于告诉 Agent 和 UI 这条命中属于人物、地点、时间线、情节还是世界观设定。它也可以用于检索过滤和结果分组。 |
+| `name` | `RagSearchCandidate` | 要素名称，例如人物名、地点名、事件名或设定名。用于展示，也方便 Agent 快速判断命中对象。 |
+| `summary` | `RagSearchCandidate` | 要素摘要，通常来自要素文件 frontmatter，或由要素正文生成。它用于让 Agent 在不读取完整文件的情况下快速判断这条命中是否有价值。 |
+| `tags` | `RagSearchCandidate` | 要素标签，例如 `主角 / 黑风谷 / 伏笔 / 旧王朝`。标签可用于筛选、解释和后续 UI 分组。 |
+| `score` | `RagSearchCandidate` | 向量召回分数，表示 query embedding 与要素 embedding 的相似程度。它主要用于排序、调试和解释，不应直接展示成百分比准确率。 |
+| `rerankScore` | `RagSearchCandidate` | Rerank 精排分数。开启 Rerank 时，该字段表示精排模型重新判断后的相关性；未开启或精排失败时可以为空。 |
+| `retrievalText` | `RagSearchCandidate` | 实际参与检索的要素文本，用于解释为什么召回这条要素。它不是完整文件内容，但足够帮助 Agent 判断是否需要进一步 `ReadFile`。 |
 
 ### 4.4 工具结果格式
 
-返回给模型的文本不应过长。建议格式：
+返回给模型的文本不应过长。当前返回格式接近：
 
 ```text
-RagSearch 检索完成：query="林远 黑风谷 伏笔"，召回 3 条。
+RAG 召回并重排 3 条，返回 3 条上下文
+query: 林远 黑风谷 伏笔
 
-1. [character] 林远
-   path: elements/characters/林远.md
-   summary: 年轻修士，正在调查黑风谷异变。
-   score: 0.82
-   snippet: 林远在上一章发现黑风谷入口处的石碑裂纹...
-
-2. [location] 黑风谷
-   path: elements/locations/黑风谷.md
-   summary: 常年无风却有回声的禁地。
-   score: 0.78
-   snippet: 黑风谷被认为与旧王朝失踪事件有关...
+#1 林远 (character)
+path: elements/characters/林远.md
+score: 0.8200
+tags: 主角, 黑风谷
+lastUpdatedChapter: chapters/第001章.md
+relatedChapters: chapters/第001章.md
+summary: 年轻修士，正在调查黑风谷异变。
+retrievalText: 林远在上一章发现黑风谷入口处的石碑裂纹...
 ```
 
 设计重点：
 
 - 摘要用于快速判断。
 - `path` 用于后续 `ReadFile`。
-- `snippet` 用于让模型确认为什么召回。
+- `retrievalText` 用于让模型确认为什么召回。
 - 不直接把完整要素正文全部塞给模型。
 
 ## 五、向量库与要素文件关系
@@ -332,9 +338,9 @@ MVP 阶段默认使用 Orama 负责粗召回。Orama 在这里承担三件事：
 
 向量数据的浏览器本地持久化由 IndexedDB 承担。Orama 可以通过持久化插件把自身数据保存到 IndexedDB，但 IndexedDB 才是实际落盘介质。
 
-如果实现早期为了调试暂时使用 IndexedDB 直接读取记录并手写 `cosineSimilarity`，只能视为过渡实现。正式方案仍以 Orama 召回为准。
+当前实现为了先验证 MVP 闭环，仍使用 IndexedDB 直接读取记录并手写 `cosineSimilarity`。这应视为过渡实现。正式方案仍以 Orama 召回为准。
 
-召回结果中的 `score` 来自 Orama 返回的向量相似度。开启 Rerank 后，`rerankScore` 来自精排模型。最终返回给 Agent 的 `hits` 应保留 `sourcePath`，这样 Agent 可以继续通过 `ReadFile(sourcePath)` 读取真实要素文件。
+召回结果中的 `score` 来自向量相似度。开启 Rerank 后，`rerankScore` 来自精排模型。最终返回给 Agent 的 `candidates` 应保留 `sourcePath`，这样 Agent 可以继续通过 `ReadFile(sourcePath)` 读取真实要素文件。
 
 这个流程的重点是：
 
@@ -390,68 +396,100 @@ RagSearch -> 判断候选 -> ReadFile(sourcePath) -> 生成/修改文件
 
 如果向量库里没有要素数据，`RagSearch` 即使接入 Agent Loop，也只能返回空结果。因此第一步应该先打通“章节内容 -> 要素文件”的链路，让 `elements/` 下有可向量化、可召回、可追溯的故事资料。
 
+当前状态：
+
+- 第一版规则型 `extractElementsFromChapter()` 已落地，可以从章节 Markdown 中提取人物、地点、情节、时间线与世界观候选。
+- `writeExtractedElements()` 已支持将候选写入 `elements/characters`、`elements/locations`、`elements/plots`、`elements/timeline`、`elements/worldbuilding`。
+- Test Lab 与正式右侧内容面板已提供“提取要素 / 写入 elements”入口。
+- 写入要素后已能标记 RAG 索引为 `stale`。
+- 该实现用于打通数据链路，后续仍需升级为 LLM 结构化提取。
+
 任务：
 
-- 实现 `extractElementsFromChapter()`。
-- 让 LLM 从章节 Markdown 中提取人物、地点、情节要素。
-- 输出结构化 JSON。
-- 支持提取预览。
-- 用户确认后写入 `elements/`。
-- 写入后标记向量库过期或触发重建。
+- [x] 实现第一版 `extractElementsFromChapter()`。
+- [ ] 让 LLM 从章节 Markdown 中提取人物、地点、情节要素。
+- [ ] 输出稳定结构化 JSON。
+- [x] 支持提取预览。
+- [x] 用户确认后写入 `elements/`。
+- [x] 写入后标记向量库过期或触发重建。
+- [ ] 支持已有要素的去重、合并与覆盖确认。
 
 验收标准：
 
-- 新章节能提取出最少三类要素。
-- 要素文件格式稳定。
-- 写入的要素文件可以被向量化。
-- 手动重建向量库后 `RagSearch` 可以召回新要素。
+- [x] 新章节能提取出最少三类要素。
+- [x] 要素文件格式具备第一版稳定 frontmatter。
+- [x] 写入的要素文件可以被向量化。
+- [ ] 手动重建向量库后 `RagSearch` 可以召回新要素。
 
 ### 阶段 2：完善向量库构建与状态处理
 
 目标：让 Agent 和用户知道向量库是否可用。
 
+当前状态：
+
+- 正式设置页已提供 RAG 索引状态查看入口。
+- 正式设置页已提供手动重建向量索引入口。
+- 索引元信息已展示状态、文档数、向量维度、Embedding 模型和最近构建时间。
+- 要素写入后已能标记索引为 `stale`。
+
 任务：
 
-- `RagSearch` 返回 `vectorStoreStatus`。
-- 向量库为空、过期、错误时返回明确说明。
-- UI 显示向量库状态。
-- 设置页或测试页提供重建向量库入口。
+- [ ] `RagSearch` 返回更明确的 `vectorStoreStatus`。
+- [ ] 向量库为空、过期、错误时返回更完整说明。
+- [x] UI 显示向量库状态。
+- [x] 设置页或测试页提供重建向量库入口。
+- [ ] 自动增量重建与索引过期提醒。
 
 验收标准：
 
-- 没有 Embedding 配置时不会静默失败。
-- 向量库为空时 Agent 能知道需要先创建或提取要素。
-- 向量库过期时用户可看到提醒。
+- [x] 没有 Embedding 配置时不会静默失败。
+- [x] 向量库为空时用户可看到当前索引记录。
+- [ ] 向量库为空或过期时 Agent 能收到更结构化的状态提示。
+- [ ] 向量库过期时用户可看到更明显的提醒。
 
 ### 阶段 3：接入 Agent 工具
 
 目标：让模型可以主动调用 `RagSearch`。
 
+当前状态：
+
+- `RagSearch` 已接入新的 Agent tool name 类型。
+- `RagSearch` 已在 `src/core/agent/tools.ts` 中暴露给模型。
+- 工具结果已能回灌模型。
+- 结果包含 `sourcePath`，Agent 可继续 `ReadFile` 精读。
+
 任务：
 
-- 在 `src/core/agent/tools.ts` 中新增 `RagSearch` schema。
-- 在 Agent tool name 类型中加入 `RagSearch`。
-- 复用现有 `searchRagCandidates()` 作为核心实现。
-- 补充 `RagSearch` 的输入校验与结果格式化。
-- 在 UI tool message 中展示检索 query、命中数量和主要路径。
+- [x] 在 `src/core/agent/tools.ts` 中新增 `RagSearch` schema。
+- [x] 在 Agent tool name 类型中加入 `RagSearch`。
+- [x] 复用现有 `searchRagCandidates()` 作为核心实现。
+- [x] 补充 `RagSearch` 的输入校验与结果格式化。
+- [x] 在 UI tool message 中展示检索 query、命中数量和主要路径。
+- [ ] 继续观察模型在真实写作任务中是否会稳定主动调用。
 
 验收标准：
 
-- Agent 可以在一轮 Query Loop 中主动调用 `RagSearch`。
-- 工具结果可以回灌模型。
-- 向量库为空时有清晰错误或提示。
-- 命中结果包含 `sourcePath`，Agent 可以继续 `ReadFile`。
+- [x] Agent 可以在一轮 Query Loop 中主动调用 `RagSearch`。
+- [x] 工具结果可以回灌模型。
+- [ ] 向量库为空时有更清晰错误或提示。
+- [x] 命中结果包含 `sourcePath`，Agent 可以继续 `ReadFile`。
 
 ### 阶段 4：Rerank 与解释层
 
 目标：提升召回质量，并让用户理解 Agent 查到了什么。
 
+当前状态：
+
+- `RagSearch` 内部已接入已有 Rerank 逻辑。
+- Rerank 失败时当前会在 `rerankRetrievalCandidates()` 内降级为粗召回候选。
+- 工具结果已保留 `score / rerankScore`。
+
 任务：
 
-- 在 `RagSearch` 内部接入已有 Rerank 逻辑。
-- Rerank 失败时降级为粗召回。
-- 工具结果中保留 `score / rerankScore`。
-- UI 展示召回结果、重排结果、最终使用结果。
+- [x] 在 `RagSearch` 内部接入已有 Rerank 逻辑。
+- [x] Rerank 失败时降级为粗召回。
+- [x] 工具结果中保留 `score / rerankScore`。
+- [ ] UI 展示召回结果、重排结果、最终使用结果。
 
 验收标准：
 
@@ -474,13 +512,13 @@ RagSearch -> 判断候选 -> ReadFile(sourcePath) -> 生成/修改文件
 
 当前最优先做的是：
 
-> 先打通“章节内容 -> 要素文件 -> 向量库”的数据链路。
+> 在正式项目中验证“要素文件 -> 向量库 -> Agent 主动 RagSearch -> ReadFile(sourcePath) -> 写作/改稿”的真实创作链路。
 
 原因：
 
-- `RagSearch` 依赖向量库中已有可召回数据。
-- 向量库数据来自 `elements/**/*.md`，所以要素文件必须先稳定产生。
-- 要素提取与写入是 NovAI 长篇记忆闭环的源头。
-- 这一步完成后，再接入 Agent 主动 `RagSearch` 才能验证真实创作效果。
+- `elements/**/*.md` 已经可以由章节内容产生，但提取质量仍需 LLM 结构化方案补强。
+- 设置页已能手动重建索引，`RagSearch` 已接入 Agent Loop。
+- 下一步需要验证模型是否会在真实创作任务中主动检索，并在必要时继续读取要素源文件。
+- 当前检索实现仍是过渡方案，正式 Orama 召回、自动增量索引和更好的状态提示仍需补齐。
 
-实现完成后，再继续推进 `RagSearch` 接入 Agent Loop。
+下一步建议优先在正式项目里做端到端测试，并根据日志观察结果决定先优化触发提示词、索引状态提示，还是先替换为正式 Orama 召回。
