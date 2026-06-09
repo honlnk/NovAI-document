@@ -46,7 +46,7 @@
 3. AI 以工具方式读取目标文件与必要上下文
 4. AI 在必要时调用 `RagSearch`
 5. AI 返回结构化结果
-6. 系统将结果写回本地 Markdown 文件
+6. 系统将结果写回本地章节或要素文件
 7. 内容区更新预览，对话区显示操作摘要
 
 也就是说，第一阶段不是“做一整套万能智能体平台”，而是：
@@ -150,19 +150,19 @@ type ChatMessage =
   | ToolCallMessage
   | ToolResultMessage
   | ErrorMessage
-  | ContextSummaryMessage
+  | ContextSummaryMessage;
 ```
 
 ### 6.2 用户消息
 
 ```ts
 type UserTextMessage = {
-  id: string
-  role: 'user'
-  kind: 'text'
-  text: string
-  createdAt: string
-}
+  id: string;
+  role: "user";
+  kind: "text";
+  text: string;
+  createdAt: string;
+};
 ```
 
 用途：
@@ -174,12 +174,12 @@ type UserTextMessage = {
 
 ```ts
 type AssistantTextMessage = {
-  id: string
-  role: 'assistant'
-  kind: 'text'
-  text: string
-  createdAt: string
-}
+  id: string;
+  role: "assistant";
+  kind: "text";
+  text: string;
+  createdAt: string;
+};
 ```
 
 用途：
@@ -192,14 +192,14 @@ type AssistantTextMessage = {
 
 ```ts
 type AssistantActionSummaryMessage = {
-  id: string
-  role: 'assistant'
-  kind: 'action-summary'
-  summary: string
-  targetPath?: string
-  relatedPaths?: string[]
-  createdAt: string
-}
+  id: string;
+  role: "assistant";
+  kind: "action-summary";
+  summary: string;
+  targetPath?: string;
+  relatedPaths?: string[];
+  createdAt: string;
+};
 ```
 
 用途：
@@ -209,7 +209,7 @@ type AssistantActionSummaryMessage = {
 
 示例：
 
-- 已修改 `chapters/第003章-密境遇险.md`
+- 已修改 `chapters/第003章-密境遇险.txt`
 - 已保存 `prompts/scenes/scene-001.md`
 - 已为本次修改补充 4 条相关要素上下文
 
@@ -217,13 +217,21 @@ type AssistantActionSummaryMessage = {
 
 ```ts
 type ToolCallMessage = {
-  id: string
-  role: 'system'
-  kind: 'tool-call'
-  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'RenameFile' | 'DeleteFile' | 'ListDirectory' | 'FindFiles' | 'RagSearch'
-  inputSummary: string
-  createdAt: string
-}
+  id: string;
+  role: "system";
+  kind: "tool-call";
+  toolName:
+    | "ReadFile"
+    | "EditFile"
+    | "CreateFile"
+    | "RenameFile"
+    | "DeleteFile"
+    | "ListDirectory"
+    | "FindFiles"
+    | "RagSearch";
+  inputSummary: string;
+  createdAt: string;
+};
 ```
 
 用途：
@@ -235,14 +243,22 @@ type ToolCallMessage = {
 
 ```ts
 type ToolResultMessage = {
-  id: string
-  role: 'system'
-  kind: 'tool-result'
-  toolName: 'ReadFile' | 'EditFile' | 'CreateFile' | 'RenameFile' | 'DeleteFile' | 'ListDirectory' | 'FindFiles' | 'RagSearch'
-  ok: boolean
-  resultSummary: string
-  createdAt: string
-}
+  id: string;
+  role: "system";
+  kind: "tool-result";
+  toolName:
+    | "ReadFile"
+    | "EditFile"
+    | "CreateFile"
+    | "RenameFile"
+    | "DeleteFile"
+    | "ListDirectory"
+    | "FindFiles"
+    | "RagSearch";
+  ok: boolean;
+  resultSummary: string;
+  createdAt: string;
+};
 ```
 
 用途：
@@ -254,25 +270,25 @@ type ToolResultMessage = {
 
 ```ts
 type ErrorMessage = {
-  id: string
-  role: 'system'
-  kind: 'error'
-  message: string
-  recoverable: boolean
-  createdAt: string
-}
+  id: string;
+  role: "system";
+  kind: "error";
+  message: string;
+  recoverable: boolean;
+  createdAt: string;
+};
 ```
 
 ### 6.8 上下文摘要消息
 
 ```ts
 type ContextSummaryMessage = {
-  id: string
-  role: 'system'
-  kind: 'context-summary'
-  summary: string
-  createdAt: string
-}
+  id: string;
+  role: "system";
+  kind: "context-summary";
+  summary: string;
+  createdAt: string;
+};
 ```
 
 用途：
@@ -288,14 +304,14 @@ type ContextSummaryMessage = {
 
 ```ts
 type ChatSessionState = {
-  sessionId: string
-  projectId: string
-  messages: ChatMessage[]
-  status: 'idle' | 'running' | 'waiting-user' | 'error'
-  currentDraftText: string
-  currentTarget: ChatTargetContext | null
-  lastRagResult: RagSearchResult | null
-}
+  sessionId: string;
+  projectId: string;
+  messages: ChatMessage[];
+  status: "idle" | "running" | "waiting-user" | "error";
+  currentDraftText: string;
+  currentTarget: ChatTargetContext | null;
+  lastRagResult: RagSearchResult | null;
+};
 ```
 
 ### 7.2 当前目标上下文
@@ -304,12 +320,12 @@ type ChatSessionState = {
 
 ```ts
 type ChatTargetContext = {
-  type: 'chapter' | 'prompt-system' | 'prompt-scene' | 'element' | 'project'
-  primaryPath?: string
-  groupName?: string
-  displayName: string
-  derivedFrom: 'preview' | 'selection' | 'explicit-user-intent'
-}
+  type: "chapter" | "prompt-system" | "prompt-scene" | "element" | "project";
+  primaryPath?: string;
+  groupName?: string;
+  displayName: string;
+  derivedFrom: "preview" | "selection" | "explicit-user-intent";
+};
 ```
 
 ### 7.3 这层状态的意义
@@ -345,13 +361,13 @@ AI 不应总是从零猜用户想操作哪个文件。
 
 例 1：
 
-- 当前预览：`chapters/第003章-密境遇险.md`
+- 当前预览：`chapters/第003章-密境遇险.txt`
 - 用户输入：“把结尾改得更紧张一些”
 
 系统默认目标：
 
 - `type = chapter`
-- `primaryPath = chapters/第003章-密境遇险.md`
+- `primaryPath = chapters/第003章-密境遇险.txt`
 
 例 2：
 
@@ -444,23 +460,23 @@ AI 不应总是从零猜用户想操作哪个文件。
 
 ```ts
 type ToolDefinition<TInput, TOutput> = {
-  name: string
-  description: string
-  validateInput: (input: unknown) => TInput
-  call: (input: TInput, context: ToolRuntimeContext) => Promise<TOutput>
-  summarizeInput: (input: TInput) => string
-  summarizeOutput: (output: TOutput) => string
-}
+  name: string;
+  description: string;
+  validateInput: (input: unknown) => TInput;
+  call: (input: TInput, context: ToolRuntimeContext) => Promise<TOutput>;
+  summarizeInput: (input: TInput) => string;
+  summarizeOutput: (output: TOutput) => string;
+};
 ```
 
 ### 10.3 运行时上下文
 
 ```ts
 type ToolRuntimeContext = {
-  project: ProjectSnapshot
-  target: ChatTargetContext | null
-  session: ChatSessionState
-}
+  project: ProjectSnapshot;
+  target: ChatTargetContext | null;
+  session: ChatSessionState;
+};
 ```
 
 第一阶段不需要把权限系统做得很重，但需要保证工具知道：
@@ -491,28 +507,28 @@ type ToolRuntimeContext = {
 
 ```ts
 type ReadFileInput = {
-  path: string
-  offset?: number
-  limit?: number
-}
+  path: string;
+  offset?: number;
+  limit?: number;
+};
 ```
 
 ### 输出
 
 ```ts
 type ReadFileOutput = {
-  path: string
-  content: string
-  numberedContent: string
-  startLine: number
-  endLine: number
-  totalLines: number
-  truncated: boolean
-  empty: boolean
-  offsetBeyondEnd: boolean
-  fileSizeBytes: number
-  notice?: string
-}
+  path: string;
+  content: string;
+  numberedContent: string;
+  startLine: number;
+  endLine: number;
+  totalLines: number;
+  truncated: boolean;
+  empty: boolean;
+  offsetBeyondEnd: boolean;
+  fileSizeBytes: number;
+  notice?: string;
+};
 ```
 
 ### 用途
@@ -534,20 +550,20 @@ type ReadFileOutput = {
 
 ```ts
 type CreateFileInput = {
-  path: string
-  content: string
-}
+  path: string;
+  content: string;
+};
 ```
 
 ### 输出
 
 ```ts
 type CreateFileOutput = {
-  path: string
-  contentLength: number
-  linesAdded: number
-  created: true
-}
+  path: string;
+  contentLength: number;
+  linesAdded: number;
+  created: true;
+};
 ```
 
 ### 用途
@@ -568,23 +584,23 @@ type CreateFileOutput = {
 
 ```ts
 type EditFileInput = {
-  path: string
-  oldText: string
-  newText: string
-  replaceAll?: boolean
-}
+  path: string;
+  oldText: string;
+  newText: string;
+  replaceAll?: boolean;
+};
 ```
 
 ### 输出
 
 ```ts
 type EditFileOutput = {
-  path: string
-  occurrences: number
-  contentLength: number
-  linesAdded: number
-  linesRemoved: number
-}
+  path: string;
+  occurrences: number;
+  contentLength: number;
+  linesAdded: number;
+  linesRemoved: number;
+};
 ```
 
 ### 当前实现
@@ -607,19 +623,19 @@ type EditFileOutput = {
 
 ```ts
 type RenameFileInput = {
-  fromPath: string
-  toPath: string
-}
+  fromPath: string;
+  toPath: string;
+};
 ```
 
 ### 输出
 
 ```ts
 type RenameFileOutput = {
-  fromPath: string
-  toPath: string
-  contentLength: number
-}
+  fromPath: string;
+  toPath: string;
+  contentLength: number;
+};
 ```
 
 ### 使用边界
@@ -638,19 +654,19 @@ type RenameFileOutput = {
 
 ```ts
 type DeleteFileInput = {
-  path: string
-}
+  path: string;
+};
 ```
 
 ### 输出
 
 ```ts
 type DeleteFileOutput = {
-  path: string
-  trashPath: string
-  contentLength: number
-  linesRemoved: number
-}
+  path: string;
+  trashPath: string;
+  contentLength: number;
+  linesRemoved: number;
+};
 ```
 
 ### 使用边界
@@ -667,21 +683,21 @@ type DeleteFileOutput = {
 
 ```ts
 type ListDirectoryInput = {
-  path?: string
-  showHidden?: boolean
-}
+  path?: string;
+  showHidden?: boolean;
+};
 ```
 
 ```ts
 type ListDirectoryOutput = {
-  path: string
+  path: string;
   entries: Array<{
-    name: string
-    path: string
-    kind: 'file' | 'directory'
-    hidden: boolean
-  }>
-}
+    name: string;
+    path: string;
+    kind: "file" | "directory";
+    hidden: boolean;
+  }>;
+};
 ```
 
 ## 11.7 FindFiles
@@ -690,21 +706,21 @@ type ListDirectoryOutput = {
 
 ```ts
 type FindFilesInput = {
-  pattern: string
-  path?: string
-  includeHidden?: boolean
-  limit?: number
-}
+  pattern: string;
+  path?: string;
+  includeHidden?: boolean;
+  limit?: number;
+};
 ```
 
 ```ts
 type FindFilesOutput = {
-  pattern: string
-  path: string
-  filenames: string[]
-  numFiles: number
-  truncated: boolean
-}
+  pattern: string;
+  path: string;
+  filenames: string[];
+  numFiles: number;
+  truncated: boolean;
+};
 ```
 
 ## 11.8 RagSearch
@@ -713,30 +729,43 @@ type FindFilesOutput = {
 
 ```ts
 type RagSearchInput = {
-  query: string
-  topK: number
+  query: string;
+  topK: number;
   filters?: {
-    type?: Array<'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'>
-    lastUpdatedChapter?: string
-  }
-}
+    type?: Array<
+      | "character"
+      | "entity"
+      | "location"
+      | "timeline"
+      | "plot"
+      | "worldbuilding"
+    >;
+    lastUpdatedChapter?: string;
+  };
+};
 ```
 
 ### 输出
 
 ```ts
 type RagSearchHit = {
-  id: string
-  sourcePath: string
-  type: 'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'
-  name: string
-  summary: string
-  score?: number
-}
+  id: string;
+  sourcePath: string;
+  type:
+    | "character"
+    | "entity"
+    | "location"
+    | "timeline"
+    | "plot"
+    | "worldbuilding";
+  name: string;
+  summary: string;
+  score?: number;
+};
 
 type RagSearchOutput = {
-  hits: RagSearchHit[]
-}
+  hits: RagSearchHit[];
+};
 ```
 
 ### 用途

@@ -13,6 +13,8 @@
 - `CreateFile` 明确保持窄语义，只新建文件，不覆盖已有文件。
 - `RenameFile / DeleteFile` 已补齐基础整理能力，但还没有用户确认与撤销 UI。
 - `RagSearch` 尚未作为正式 Agent tool 接入新 Agent Loop。
+- 章节正文默认已转向 `txt`，要素文件继续使用 `.md`。
+- `elements/` 后续新增 `entities/` 分组，用于武功、武器、坐骑、丹药、信物等具体实体。
 
 本设计目标不是把 NovAI 做成通用开发工具，而是借鉴 Claude Code 成熟的工具分工方式，重建一套更适合小说项目工作区的受控工具层。
 
@@ -67,7 +69,7 @@ NovAI 的聊天界面是 Agent 控制面板，真正的故事资产应该落在�
 | :-- | :-- | :-- |
 | `ListDirectory` | 查看项目内某个已存在目录的直接子项，可选择显示隐藏项 | 只负责目录浏览，不递归读取文件正文 |
 | `FindFiles` | 按 glob 路径模式查找文件，支持隐藏项与数量上限 | 不是内容搜索工具，语义搜索未来由 `RagSearch` 承担 |
-| `ReadFile` | 读取项目内 `.md / .json / .txt` 文件，支持行号、`offset / limit`、大文件完整读取限制，并记录 `readFileState` | 没有读取去重；局部读取后的写入策略仍需继续细化 |
+| `ReadFile` | 读取项目内 `.md / .json / .txt` 文件，支持行号、`offset / limit`、大文件完整读取限制，并记录 `readFileState`。章节正文当前默认是 `.txt`，要素文件与提示词继续用 `.md`。 | 没有读取去重；局部读取后的写入策略仍需继续细化 |
 | `EditFile` | 精确替换已有文本片段，支持 `replaceAll`，强化重复文本消歧与错误提示，并强制校验 `readFileState` 与文件过期状态 | diff 能力不足；写入前确认 UI 尚未接入 |
 | `CreateFile` | 创建新文本文件，父目录自动创建，存在则失败 | 明确不承担覆盖已有文件职责 |
 | `RenameFile` | 重命名或移动单个文本文件，目标存在则失败 | 暂不支持目录移动 |
@@ -260,7 +262,7 @@ type FindFilesInput = {
 语义：
 
 - 类似 Claude Code 的 `Glob`，但命名更贴合 NovAI。
-- 用于 `chapters/*.md`、`elements/**/*.md`、`prompts/**/*.md` 等路径匹配。
+- 用于 `chapters/*.txt`、`elements/**/*.md`、`prompts/**/*.md` 等路径匹配。
 - 默认从工作区根目录查找。
 - 返回匹配文件路径，不读取文件内容。
 - 应设置默认结果上限。

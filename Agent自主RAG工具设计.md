@@ -51,12 +51,12 @@ NovAI 的 RAG 工具设计采用以下模式：
 
 工具分工如下：
 
-| 工具 | 作用 |
-| :-- | :-- |
-| `FindFiles` | 按路径和文件名模式查找项目文件 |
-| `ListDirectory` | 查看目录结构 |
-| `ReadFile` | 读取明确路径的文件内容 |
-| `RagSearch` | 根据语义查找相关人物、地点、情节、时间线、世界观要素 |
+| 工具            | 作用                                                       |
+| :-------------- | :--------------------------------------------------------- |
+| `FindFiles`     | 按路径和文件名模式查找项目文件                             |
+| `ListDirectory` | 查看目录结构                                               |
+| `ReadFile`      | 读取明确路径的文件内容                                     |
+| `RagSearch`     | 根据语义查找相关人物、实体、地点、情节、时间线、世界观要素 |
 
 `RagSearch` 解决的是小说创作中的语义问题，例如：
 
@@ -81,7 +81,7 @@ Agent 应该能够自主执行类似流程：
 3. ReadFile(elements/characters/林远.md)
 4. ReadFile(elements/locations/黑风谷.md)
 5. ReadFile(elements/plots/黑风谷伏笔.md)
-6. CreateFile(chapters/第002章.md)
+6. CreateFile(chapters/第002章.txt)
 ```
 
 用户看到的不是一段凭空生成的回答，而是一次可追踪的文件化创作过程：
@@ -107,27 +107,34 @@ Agent 应该能够自主执行类似流程：
 
 ```ts
 type RagSearchInput = {
-  query: string
-  topK?: number
-  finalLimit?: number
+  query: string;
+  topK?: number;
+  finalLimit?: number;
   filters?: {
-    type?: Array<'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'>
-    tags?: string[]
-    lastUpdatedChapter?: string
-  }
-}
+    type?: Array<
+      | "character"
+      | "entity"
+      | "location"
+      | "timeline"
+      | "plot"
+      | "worldbuilding"
+    >;
+    tags?: string[];
+    lastUpdatedChapter?: string;
+  };
+};
 ```
 
 字段说明：
 
-| 字段 | 说明 |
-| :-- | :-- |
-| `query` | 必填，语义检索查询，应该描述当前创作任务需要回忆什么 |
-| `topK` | 可选，最多召回多少条候选，默认使用项目配置 |
-| `finalLimit` | 可选，最终返回给 Agent 的上下文条数，默认使用项目配置 |
-| `filters.type` | 可选，限定要素类型 |
-| `filters.tags` | 可选，限定标签 |
-| `filters.lastUpdatedChapter` | 可选，限定最后关联章节 |
+| 字段                         | 说明                                                  |
+| :--------------------------- | :---------------------------------------------------- |
+| `query`                      | 必填，语义检索查询，应该描述当前创作任务需要回忆什么  |
+| `topK`                       | 可选，最多召回多少条候选，默认使用项目配置            |
+| `finalLimit`                 | 可选，最终返回给 Agent 的上下文条数，默认使用项目配置 |
+| `filters.type`               | 可选，限定要素类型                                    |
+| `filters.tags`               | 可选，限定标签                                        |
+| `filters.lastUpdatedChapter` | 可选，限定最后关联章节                                |
 
 ### 4.3 输出结构
 
@@ -135,46 +142,52 @@ type RagSearchInput = {
 
 ```ts
 type RagSearchOutput = {
-  query: string
-  recalledCount: number
-  returnedCount: number
-  usedRerank: boolean
+  query: string;
+  recalledCount: number;
+  returnedCount: number;
+  usedRerank: boolean;
   candidates: Array<{
-    id: string
-    sourcePath: string
-    type: 'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'
-    name: string
-    summary: string
-    retrievalText: string
-    tags: string[]
-    lastUpdatedChapter: string
-    relatedChapters: string[]
-    score?: number
-    rerankScore?: number
-  }>
-}
+    id: string;
+    sourcePath: string;
+    type:
+      | "character"
+      | "entity"
+      | "location"
+      | "timeline"
+      | "plot"
+      | "worldbuilding";
+    name: string;
+    summary: string;
+    retrievalText: string;
+    tags: string[];
+    lastUpdatedChapter: string;
+    relatedChapters: string[];
+    score?: number;
+    rerankScore?: number;
+  }>;
+};
 ```
 
 其中 `sourcePath` 非常重要。Agent 拿到摘要和 `retrievalText` 后，如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。
 
 字段说明：
 
-| 字段 | 所属类型 | 说明 |
-| :-- | :-- | :-- |
-| `query` | `RagSearchOutput` | 本次实际用于检索的查询文本。它可能来自用户原始指令，也可能是 Agent 为了更好召回要素而改写后的检索 query。保留该字段是为了让 UI、日志和调试面板解释 Agent 到底查了什么。 |
-| `recalledCount` | `RagSearchOutput` | 粗召回候选数量。 |
-| `returnedCount` | `RagSearchOutput` | 最终返回给 Agent 的上下文数量。 |
-| `usedRerank` | `RagSearchOutput` | 本次是否启用了 Rerank 链路。 |
-| `candidates` | `RagSearchOutput` | 本次返回给 Agent 的命中要素列表。每一项都是一条从向量库召回的要素记录，可能已经经过 Rerank 精排和最终上下文筛选。 |
-| `id` | `RagSearchCandidate` | 要素在向量库中的稳定 ID，用于去重、更新、追踪和调试。它不替代真实文件路径，真实内容仍以 `sourcePath` 指向的 Markdown 文件为准。 |
-| `sourcePath` | `RagSearchCandidate` | 命中要素对应的项目内 Markdown 文件路径，例如 `elements/characters/林远.md`。这是从检索结果回到真实文件的桥。Agent 如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。 |
-| `type` | `RagSearchCandidate` | 要素类型，用于告诉 Agent 和 UI 这条命中属于人物、地点、时间线、情节还是世界观设定。它也可以用于检索过滤和结果分组。 |
-| `name` | `RagSearchCandidate` | 要素名称，例如人物名、地点名、事件名或设定名。用于展示，也方便 Agent 快速判断命中对象。 |
-| `summary` | `RagSearchCandidate` | 要素摘要，通常来自要素文件 frontmatter，或由要素正文生成。它用于让 Agent 在不读取完整文件的情况下快速判断这条命中是否有价值。 |
-| `tags` | `RagSearchCandidate` | 要素标签，例如 `主角 / 黑风谷 / 伏笔 / 旧王朝`。标签可用于筛选、解释和后续 UI 分组。 |
-| `score` | `RagSearchCandidate` | 向量召回分数，表示 query embedding 与要素 embedding 的相似程度。它主要用于排序、调试和解释，不应直接展示成百分比准确率。 |
-| `rerankScore` | `RagSearchCandidate` | Rerank 精排分数。开启 Rerank 时，该字段表示精排模型重新判断后的相关性；未开启或精排失败时可以为空。 |
-| `retrievalText` | `RagSearchCandidate` | 实际参与检索的要素文本，用于解释为什么召回这条要素。它不是完整文件内容，但足够帮助 Agent 判断是否需要进一步 `ReadFile`。 |
+| 字段            | 所属类型             | 说明                                                                                                                                                                        |
+| :-------------- | :------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `query`         | `RagSearchOutput`    | 本次实际用于检索的查询文本。它可能来自用户原始指令，也可能是 Agent 为了更好召回要素而改写后的检索 query。保留该字段是为了让 UI、日志和调试面板解释 Agent 到底查了什么。     |
+| `recalledCount` | `RagSearchOutput`    | 粗召回候选数量。                                                                                                                                                            |
+| `returnedCount` | `RagSearchOutput`    | 最终返回给 Agent 的上下文数量。                                                                                                                                             |
+| `usedRerank`    | `RagSearchOutput`    | 本次是否启用了 Rerank 链路。                                                                                                                                                |
+| `candidates`    | `RagSearchOutput`    | 本次返回给 Agent 的命中要素列表。每一项都是一条从向量库召回的要素记录，可能已经经过 Rerank 精排和最终上下文筛选。                                                           |
+| `id`            | `RagSearchCandidate` | 要素在向量库中的稳定 ID，用于去重、更新、追踪和调试。它不替代真实文件路径，真实内容仍以 `sourcePath` 指向的 Markdown 文件为准。                                             |
+| `sourcePath`    | `RagSearchCandidate` | 命中要素对应的项目内 Markdown 文件路径，例如 `elements/characters/林远.md`。这是从检索结果回到真实文件的桥。Agent 如果需要完整上下文，应该继续调用 `ReadFile(sourcePath)`。 |
+| `type`          | `RagSearchCandidate` | 要素类型，用于告诉 Agent 和 UI 这条命中属于人物、地点、时间线、情节还是世界观设定。它也可以用于检索过滤和结果分组。                                                         |
+| `name`          | `RagSearchCandidate` | 要素名称，例如人物名、地点名、事件名或设定名。用于展示，也方便 Agent 快速判断命中对象。                                                                                     |
+| `summary`       | `RagSearchCandidate` | 要素摘要，通常来自要素文件 frontmatter，或由要素正文生成。它用于让 Agent 在不读取完整文件的情况下快速判断这条命中是否有价值。                                               |
+| `tags`          | `RagSearchCandidate` | 要素标签，例如 `主角 / 黑风谷 / 伏笔 / 旧王朝`。标签可用于筛选、解释和后续 UI 分组。                                                                                        |
+| `score`         | `RagSearchCandidate` | 向量召回分数，表示 query embedding 与要素 embedding 的相似程度。它主要用于排序、调试和解释，不应直接展示成百分比准确率。                                                    |
+| `rerankScore`   | `RagSearchCandidate` | Rerank 精排分数。开启 Rerank 时，该字段表示精排模型重新判断后的相关性；未开启或精排失败时可以为空。                                                                         |
+| `retrievalText` | `RagSearchCandidate` | 实际参与检索的要素文本，用于解释为什么召回这条要素。它不是完整文件内容，但足够帮助 Agent 判断是否需要进一步 `ReadFile`。                                                    |
 
 ### 4.4 工具结果格式
 
@@ -188,8 +201,8 @@ query: 林远 黑风谷 伏笔
 path: elements/characters/林远.md
 score: 0.8200
 tags: 主角, 黑风谷
-lastUpdatedChapter: chapters/第001章.md
-relatedChapters: chapters/第001章.md
+lastUpdatedChapter: chapters/第001章.txt
+relatedChapters: chapters/第001章.txt
 summary: 年轻修士，正在调查黑风谷异变。
 retrievalText: 林远在上一章发现黑风谷入口处的石碑裂纹...
 ```
@@ -203,11 +216,11 @@ retrievalText: 林远在上一章发现黑风谷入口处的石碑裂纹...
 
 ## 五、向量库与要素文件关系
 
-### 5.1 Source of Truth
+### 5.1 真实数据来源
 
 NovAI 必须坚持：
 
-> `elements/**/*.md` 是故事要素的真相来源，向量库只是由这些文件生成的可重建检索缓存。
+> `elements/**/*.md` 是故事要素的真实数据来源，向量库只是由这些文件生成的可重建检索缓存。
 
 因此：
 
@@ -222,6 +235,7 @@ MVP 阶段 `RagSearch` 只检索要素文件：
 
 ```text
 elements/characters/*.md
+elements/entities/*.md
 elements/locations/*.md
 elements/timeline/*.md
 elements/plots/*.md
@@ -249,45 +263,51 @@ MVP 阶段，每一个可检索要素在向量库中对应一条记录。记录�
 
 ```ts
 type VectorStoreRecord = {
-  id: string
-  projectId: string
-  vector: number[]
+  id: string;
+  projectId: string;
+  vector: number[];
   metadata: {
-    sourcePath: string
-    type: 'character' | 'location' | 'timeline' | 'plot' | 'worldbuilding'
-    name: string
-    summary: string
-    tags: string[]
-    retrievalText: string
-    lastUpdatedChapter?: string
-    relatedChapters: string[]
-    contentHash: string
-    sourceModifiedAt: string
-    embeddedAt: string
-    embeddingProvider: string
-    embeddingModel: string
-    embeddingDim: number
-    embeddingTextVersion: number
-  }
-}
+    sourcePath: string;
+    type:
+      | "character"
+      | "entity"
+      | "location"
+      | "timeline"
+      | "plot"
+      | "worldbuilding";
+    name: string;
+    summary: string;
+    tags: string[];
+    retrievalText: string;
+    lastUpdatedChapter?: string;
+    relatedChapters: string[];
+    contentHash: string;
+    sourceModifiedAt: string;
+    embeddedAt: string;
+    embeddingProvider: string;
+    embeddingModel: string;
+    embeddingDim: number;
+    embeddingTextVersion: number;
+  };
+};
 ```
 
 字段说明：
 
-| 字段 | 说明 |
-| :-- | :-- |
-| `id` | 向量库记录 ID，应该稳定可复用，用于更新已有记录而不是重复插入。 |
-| `projectId` | 项目隔离 ID，避免不同小说项目的要素互相召回。 |
-| `vector` | Embedding 模型生成的向量数据，用于相似度计算。 |
-| `sourcePath` | 对应的真实要素文件路径，例如 `elements/characters/林远.md`。 |
-| `type / name / summary / tags` | 要素基础元数据，用于过滤、展示和返回给 Agent。 |
-| `retrievalText` | 实际送入 Embedding 模型的检索文本，通常由类型、名称、摘要、标签和正文拼接而成。 |
-| `lastUpdatedChapter / relatedChapters` | 与章节相关的回溯信息，用于后续新鲜度排序、解释和筛选。 |
-| `contentHash` | 要素文件内容哈希，用于判断向量记录是否已经过期。 |
-| `sourceModifiedAt` | 要素文件读取时的修改时间，用于辅助判断外部编辑。 |
-| `embeddedAt` | 这条向量记录生成时间。 |
-| `embeddingProvider / embeddingModel / embeddingDim` | 生成该向量所使用的 Embedding 配置。配置变化时，旧记录需要重建。 |
-| `embeddingTextVersion` | 检索文本拼装模板版本。模板变化时，即使原文件没变，也需要重新生成向量。 |
+| 字段                                                | 说明                                                                            |
+| :-------------------------------------------------- | :------------------------------------------------------------------------------ |
+| `id`                                                | 向量库记录 ID，应该稳定可复用，用于更新已有记录而不是重复插入。                 |
+| `projectId`                                         | 项目隔离 ID，避免不同小说项目的要素互相召回。                                   |
+| `vector`                                            | Embedding 模型生成的向量数据，用于相似度计算。                                  |
+| `sourcePath`                                        | 对应的真实要素文件路径，例如 `elements/characters/林远.md`。                    |
+| `type / name / summary / tags`                      | 要素基础元数据，用于过滤、展示和返回给 Agent。                                  |
+| `retrievalText`                                     | 实际送入 Embedding 模型的检索文本，通常由类型、名称、摘要、标签和正文拼接而成。 |
+| `lastUpdatedChapter / relatedChapters`              | 与章节相关的回溯信息，用于后续新鲜度排序、解释和筛选。                          |
+| `contentHash`                                       | 要素文件内容哈希，用于判断向量记录是否已经过期。                                |
+| `sourceModifiedAt`                                  | 要素文件读取时的修改时间，用于辅助判断外部编辑。                                |
+| `embeddedAt`                                        | 这条向量记录生成时间。                                                          |
+| `embeddingProvider / embeddingModel / embeddingDim` | 生成该向量所使用的 Embedding 配置。配置变化时，旧记录需要重建。                 |
+| `embeddingTextVersion`                              | 检索文本拼装模板版本。模板变化时，即使原文件没变，也需要重新生成向量。          |
 
 MVP 默认使用 Orama 作为向量检索引擎，并通过 IndexedDB 做浏览器本地持久化。Orama 负责维护可检索的数据结构与执行检索，IndexedDB 负责把这份数据保存到本地。后续如果迁移到 LanceDB、SQLite vec、Tauri 本地数据库或远程向量数据库，逻辑结构仍应保持一致。
 
@@ -398,8 +418,8 @@ RagSearch -> 判断候选 -> ReadFile(sourcePath) -> 生成/修改文件
 
 当前状态：
 
-- 第一版规则型 `extractElementsFromChapter()` 已落地，可以从章节 Markdown 中提取人物、地点、情节、时间线与世界观候选。
-- `writeExtractedElements()` 已支持将候选写入 `elements/characters`、`elements/locations`、`elements/plots`、`elements/timeline`、`elements/worldbuilding`。
+- 第一版规则型 `extractElementsFromChapter()` 已落地，可以从章节内容中提取人物、实体、地点、情节、时间线与世界观候选。
+- `writeExtractedElements()` 已支持将候选写入 `elements/characters`、`elements/entities`、`elements/locations`、`elements/plots`、`elements/timeline`、`elements/worldbuilding`。
 - Test Lab 与正式右侧内容面板已提供“提取要素 / 写入 elements”入口。
 - 写入要素后已能标记 RAG 索引为 `stale`。
 - 该实现用于打通数据链路，后续仍需升级为 LLM 结构化提取。
@@ -407,7 +427,7 @@ RagSearch -> 判断候选 -> ReadFile(sourcePath) -> 生成/修改文件
 任务：
 
 - [x] 实现第一版 `extractElementsFromChapter()`。
-- [ ] 让 LLM 从章节 Markdown 中提取人物、地点、情节要素。
+- [ ] 让 LLM 从章节内容中提取人物、实体、地点、情节要素。
 - [ ] 输出稳定结构化 JSON。
 - [x] 支持提取预览。
 - [x] 用户确认后写入 `elements/`。

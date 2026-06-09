@@ -235,7 +235,7 @@ type ProjectRuntimeRegistry = {
 listFiles(projectId: string): Promise<ProjectFileNodeView[]>
 readFile(projectId: string, path: string): Promise<FileContentView>
 refreshFiles(projectId: string): Promise<ProjectFileNodeView[]>
-writeChapter(projectId: string, fileName: string, markdown: string): Promise<FileContentView>
+writeChapter(projectId: string, fileName: string, content: string): Promise<FileContentView>
 ```
 
 建议 view type：
