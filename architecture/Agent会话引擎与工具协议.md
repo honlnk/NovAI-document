@@ -17,10 +17,10 @@
 
 相关文档：
 
-- [Claude Code 借鉴与映射设计](ClaudeCode借鉴与映射设计.md)
+- [Claude Code 借鉴与映射设计](../decisions/0002-ClaudeCode借鉴与映射设计.md)
 - [技术架构设计](技术架构设计.md)
 - [开发前最小契约文档](开发前最小契约文档.md)
-- [UI设计文档](UI设计文档.md)
+- [UI设计文档](../product/UI设计文档.md)
 
 当前实现状态：
 

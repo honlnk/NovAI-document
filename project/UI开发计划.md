@@ -458,8 +458,8 @@ packages/app/src/
 
 ### 10.1 相关文档
 
-- [UI 设计文档](../UI设计文档.md)
-- [UI 协作接口契约设计](../UI协作接口契约设计.md)
+- [UI 设计文档](../product/UI设计文档.md)
+- [UI 协作接口契约设计](../architecture/UI协作接口契约设计.md)
 - [当前进度](当前进度.md)
 - [MVP 清单](MVP清单.md)
 
