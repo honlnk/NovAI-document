@@ -358,7 +358,7 @@ MVP 阶段默认使用 Orama 负责粗召回。Orama 在这里承担三件事：
 
 向量数据的浏览器本地持久化由 IndexedDB 承担。Orama 可以通过持久化插件把自身数据保存到 IndexedDB，但 IndexedDB 才是实际落盘介质。
 
-当前实现为了先验证 MVP 闭环，仍使用 IndexedDB 直接读取记录并手写 `cosineSimilarity`。这应视为过渡实现。正式方案仍以 Orama 召回为准。
+具体召回链路的落地状态以 [当前进度](../project/当前进度.md) 和 [开发日志](../project/开发日志.md) 为准。本文只记录目标方案：正式召回层以 Orama 为主。
 
 召回结果中的 `score` 来自向量相似度。开启 Rerank 后，`rerankScore` 来自精排模型。最终返回给 Agent 的 `candidates` 应保留 `sourcePath`，这样 Agent 可以继续通过 `ReadFile(sourcePath)` 读取真实要素文件。
 

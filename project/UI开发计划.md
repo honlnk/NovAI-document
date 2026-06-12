@@ -92,9 +92,8 @@ packages/app/src/
 │   │   ├── TreeNode.vue             # 文件树节点
 │   │   └── FilePreview.vue          # 文件预览
 │   ├── content/
-│   │   ├── FileContentView.vue      # 文件内容预览
-│   │   ├── GenerationPreview.vue    # 生成预览
-│   │   └── EmptyContent.vue         # 空状态
+│   │   ├── ContentPanel.vue         # 当前已实现：文件预览、空状态、要素提取入口
+│   │   └── GenerationPreview.vue    # 规划中：生成预览
 │   ├── settings/
 │   │   ├── LlmSettingsPanel.vue     # LLM 配置面板
 │   │   ├── EmbeddingSettingsPanel.vue # Embedding 配置面板
@@ -209,13 +208,13 @@ packages/app/src/
 
 ### Phase 5：实现右侧面板（ContentPanel）
 
-**目标**：实现内容预览面板，支持文件预览和生成预览。
+**目标**：实现内容预览面板，支持文件预览；生成预览保留为后续能力。
 
 **任务清单**：
 
-- [x] 5.1 实现 `FileContentView.vue` 文件内容预览组件
-- [x] 5.2 实现 `GenerationPreview.vue` 生成预览组件
-- [x] 5.3 实现 `EmptyContent.vue` 空状态组件
+- [x] 5.1 在 `ContentPanel.vue` 中实现文件内容预览
+- [ ] 5.2 实现独立生成预览视图或组件
+- [x] 5.3 在 `ContentPanel.vue` 中实现空状态
 - [x] 5.4 实现面板展开/折叠功能
 - [x] 5.5 集成 `fileService.readFile`，加载文件内容
 - [x] 5.6 实现 Markdown 渲染预览（可选，第一版可以用纯文本）
@@ -225,7 +224,7 @@ packages/app/src/
 **交付标准**：
 
 - 点击文件时右侧显示文件预览
-- AI 生成时右侧显示生成预览
+- AI 生成时右侧显示生成预览仍待补齐；当前只会刷新文件树并提示变更
 - 可以展开/折叠右侧面板
 - 移动端以抽屉形式展示
 
@@ -267,7 +266,7 @@ packages/app/src/
 - [x] 7.4 优化滚动条样式（参考 gpt-image-studio）
 - [x] 7.5 优化移动端适配
 - [x] 7.6 实现文件树实时更新（AI 操作后刷新）
-- [x] 7.7 实现右侧面板自动展开（AI 生成时）
+- [ ] 7.7 实现右侧面板自动展开：选择文件时已完成，AI 生成后自动打开变更文件仍待补齐
 - [x] 7.8 测试和修复 Bug
 
 **交付标准**：

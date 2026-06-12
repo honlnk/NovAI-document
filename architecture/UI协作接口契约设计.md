@@ -4,7 +4,7 @@
 
 本文档记录 NovAI 在多人协作开发时，`core` 层与 UI 层之间应如何划分接口边界。
 
-当前 NovAI 的实现重点集中在 `src/core/`：
+当前 NovAI 的实现重点集中在 `packages/core/src/core/`：
 
 - 本地项目文件系统
 - Agent Loop
@@ -17,14 +17,14 @@
 
 因此，项目已经新增第一版 UI 协作接口层，让 UI 主要依赖这层接口，而不是直接依赖 `core` 的内部模块。
 
-本文档最初用于记录方案；截至 2026-05-01，第一版接口层已经落地到 `src/services/` 与 `src/stores/`，并完成 `SessionTestView`、`TestLabView` 的迁移验证。
+本文档最初用于记录方案；截至 2026-05-01，第一版接口层已经落地到 `packages/core/src/services/` 与 `packages/app/src/stores/`，并完成 `SessionTestView`、`TestLabView` 的迁移验证。
 
 当前状态：
 
-- `src/views` 和 `src/stores` 不再直接 import `src/core/*`。
+- `packages/app/src/views` 和 `packages/app/src/stores` 不再直接 import `packages/core/src/core/*`。
 - UI 页面主要通过 Pinia store 使用能力。
-- Pinia store 通过 `src/services/*` 调用 core。
-- `src/services/types.ts` 已经提供第一版显式 view type / event type。
+- Pinia store 通过 `packages/core/src/services/*` 调用 core。
+- `packages/core/src/services/types.ts` 已经提供第一版显式 view type / event type。
 - `pnpm build` 已通过。
 
 因此，本文档后续同时承担两件事：
@@ -141,25 +141,25 @@ src/
 
 | 文件 | 职责 |
 |:-----|:-----|
-| `src/services/types.ts` | UI 协作接口类型，包含 project、file、settings、agent、RAG、element view types |
-| `src/services/project-runtime.ts` | service 内部运行时项目注册表，维护 `projectId -> ProjectSnapshot` |
-| `src/services/mappers.ts` | 将 core 内部结构映射为 UI view type |
-| `src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
-| `src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
-| `src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试 |
-| `src/services/agent-service.ts` | Agent 会话、运行一轮指令、事件映射 |
-| `src/services/generation-service.ts` | 流式生成调试接口 |
-| `src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
-| `src/services/element-service.ts` | 要素提取预览 |
-| `src/services/index.ts` | service barrel export |
+| `packages/core/src/services/types.ts` | UI 协作接口类型，包含 project、file、settings、agent、RAG、element view types |
+| `packages/core/src/services/project-runtime.ts` | service 内部运行时项目注册表，维护 `projectId -> ProjectSnapshot` |
+| `packages/core/src/services/mappers.ts` | 将 core 内部结构映射为 UI view type |
+| `packages/core/src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
+| `packages/core/src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
+| `packages/core/src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试 |
+| `packages/core/src/services/agent-service.ts` | Agent 会话、运行一轮指令、事件映射 |
+| `packages/core/src/services/generation-service.ts` | 流式生成调试接口 |
+| `packages/core/src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
+| `packages/core/src/services/element-service.ts` | 要素提取预览 |
+| `packages/core/src/services/index.ts` | service barrel export |
 
 当前 store 文件：
 
 | 文件 | 职责 |
 |:-----|:-----|
-| `src/stores/project.ts` | 当前项目、最近项目、当前文件、项目生命周期状态 |
-| `src/stores/settings.ts` | 当前项目配置、system prompt、连接测试状态 |
-| `src/stores/chat.ts` | Agent 会话视图、运行事件、变更文件、默认目标 |
+| `packages/app/src/stores/project.ts` | 当前项目、最近项目、当前文件、项目生命周期状态 |
+| `packages/app/src/stores/settings.ts` | 当前项目配置、system prompt、连接测试状态 |
+| `packages/app/src/stores/chat.ts` | Agent 会话视图、运行事件、变更文件、默认目标 |
 
 对 UI 合作者来说，优先使用 store：
 
@@ -445,11 +445,7 @@ runRagDebug(projectId: string, query: string): Promise<{
 }>
 ```
 
-注意当前代码现状：
-
-- 已有基础 Embedding 请求、IndexedDB 向量索引、余弦检索与 Rerank 调试链路。
-- 当前尚未真正引入 Orama 依赖。
-- 当前 `RagSearch` 尚未接入新的 Agent Loop。
+落地进度不在本文维护，具体以 [当前进度](../project/当前进度.md) 和 [开发日志](../project/开发日志.md) 为准。
 
 ---
 
@@ -476,13 +472,13 @@ previewElementExtraction(input: {
 }): Promise<ElementExtractionResultView>
 ```
 
-当前定位：
+设计定位：
 
 - `streamGeneration` 是单次流式生成调试接口，不是 Agent 主工作流。
 - 正式创作流程应优先走 `AgentService.runTurn()`。
-- `previewElementExtraction` 当前仍是预览/占位能力，后续要和要素写入协议一起完善。
+- `previewElementExtraction` 面向章节要素提取预览，后续要和要素写入协议、用户确认、去重合并与覆盖策略一起完善。
 
-因此接口文档中应避免把“Orama 已落地”作为实现事实。
+因此接口文档只定义 UI 与 core 的协作边界，不维护 Orama、RAG 或 Agent 工具的具体落地状态。
 
 ---
 
@@ -559,7 +555,7 @@ UI Component
 
 当前已完成：
 
-1. 已新增 `src/services/types.ts`
+1. 已新增 `packages/core/src/services/types.ts`
    - 已定义 `ProjectView`
    - 已定义 `FileContentView`
    - 已定义 `ChatSessionView`
@@ -567,7 +563,7 @@ UI Component
    - 已定义 `NovAiError`
 
 2. 已新增运行时项目注册表
-   - `src/services/project-runtime.ts`
+   - `packages/core/src/services/project-runtime.ts`
    - 由 service 内部维护 `projectId -> ProjectSnapshot`
    - UI 不再持有 `FileSystemDirectoryHandle`
 
@@ -594,7 +590,7 @@ UI Component
 8. 已迁移测试页面
    - `SessionTestView`
    - `TestLabView`
-   - `src/views`、`src/stores` 当前不再直接 import `src/core/*`
+   - `packages/app/src/views`、`packages/app/src/stores` 当前不再直接 import `packages/core/src/core/*`
 
 建议下一步：
 

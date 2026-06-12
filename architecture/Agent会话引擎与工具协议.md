@@ -22,16 +22,7 @@
 - [开发前最小契约文档](开发前最小契约文档.md)
 - [UI设计文档](../product/UI设计文档.md)
 
-当前实现状态：
-
-- 已新增 `src/core/agent/` 作为第一版 Agent Loop 核心层
-- 已新增 `src/core/tools/` 作为项目文件工具底层实现
-- 已接入 OpenAI-compatible `tools / tool_calls`
-- 已实现 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles` 项目文件工具
-- 已实现项目级运行日志 `.novel/logs/agent.log.jsonl`
-- 已实现最近项目 IndexedDB 记忆与恢复
-
-本文档中未完成能力仍按“目标设计”理解，已完成能力以当前实现状态为准。
+本文档只维护第一阶段会话引擎与工具协议的目标设计。具体落地进度以 [当前进度](../project/当前进度.md) 和 [开发日志](../project/开发日志.md) 为准。
 
 ---
 
@@ -778,7 +769,7 @@ type RagSearchOutput = {
 
 这是 NovAI 区别于 Claude Code 的核心能力之一，因此必须从第一阶段就进入工具协议，而不是只停留在测试按钮层。
 
-当前 `RagSearch` 暂未接入新的 Agent Loop，后续应作为模型可主动调用的正式工具加入 `src/core/agent/tools.ts`。
+当前 `RagSearch` 已接入新的 Agent Loop，并作为模型可主动调用的正式只读工具加入 `packages/core/src/core/agent/tools.ts`。后续重点不再是“是否接入”，而是验证真实创作任务中的触发率、召回质量，以及模型是否会在需要完整设定时继续 `ReadFile(sourcePath)`。
 
 ---
 
