@@ -4,7 +4,7 @@
 
 本文档用于明确：
 
-1. `claude-code-sound` 与 `NovAI` 的关系
+1. `claude-code` 与 `NovAI` 的关系
 2. NovAI 要借鉴 Claude Code 的哪些核心实现思路
 3. NovAI 明确不打算照搬哪些复杂能力
 4. Claude Code 的哪些设计需要映射、改造后才能适配小说创作场景
@@ -19,7 +19,7 @@
 
 ### 2.1 Claude Code 参考项目的角色
 
-`/Users/honlnk/project/claude-code-sound`
+`/Users/honlnk/project/claude-code`
 
 这个项目在 NovAI 中的定位是：
 
@@ -412,19 +412,19 @@ NovAI 的 Agent Loop 未来应当允许出现这样的步骤：
 第一批最关键的新增能力应当是：
 
 1. 会话状态模型  
-   不再只有 `instruction` 和 `result`，而是有结构化消息列表
+   不再只有 `instruction` 和 `result`，而是有结构化消息列表。当前已具备 `ChatSessionState`、消息列表、工具调用消息和工具结果消息；会话持久化与上下文压缩仍待补齐。
 
 2. 最小工具协议  
-   当前支持 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles`，后续接入 `RagSearch`
+   当前已支持 `ReadFile / EditFile / CreateFile / RenameFile / DeleteFile / ListDirectory / FindFiles / RagSearch`。后续重点转为写入确认、diff 预览、工具约束遵守和真实创作中的 RAG 使用策略验证。
 
 3. 当前预览目标注入  
-   把“当前选中的文件或分组”作为会话默认上下文的一部分
+   把“当前选中的文件或分组”作为会话默认上下文的一部分。service 层已有默认目标推导，正式 UI 主发送链路仍需继续确保 active file 稳定传入 Agent。
 
 4. 修改类工作流统一化  
-   章节、提示词、要素在底层统一为“读取目标 -> 分析 -> 修改 -> 写回”
+   章节、提示词、要素在底层统一为“读取目标 -> 分析 -> 修改 -> 写回”。文件工具层已经强制 `EditFile` 先读后改并校验文件新鲜度，但写入前用户确认尚未落地。
 
 5. RAG 工具化  
-   不只是测试页按钮，而是让 AI 能在会话中主动调用
+   不只是测试页按钮，而是让 AI 能在会话中主动调用。当前 `RagSearch` 已接入 Agent Loop，仍需在真实创作任务中验证触发率、召回质量，以及是否会继续 `ReadFile(sourcePath)` 精读源文件。
 
 ---
 
