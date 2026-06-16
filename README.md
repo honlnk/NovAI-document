@@ -54,6 +54,7 @@
 | [Agent 控制能力补强计划](plans/Agent控制能力补强计划.md) | 写入确认、diff 预览、停止运行、工具约束、system prompt 刷新和结构化文件变更事件 |
 | [章节格式调整计划](plans/章节格式调整计划.md) | 章节正文使用 `chapters/*.txt` 的适配计划、迁移步骤和兼容要求 |
 | [Element 要素体系优化计划](plans/Element要素体系优化计划.md) | `elements/entities/`、要素模板和 Agent 行为规则的优化计划 |
+| [UI 重构计划](plans/UI重构计划.md) | 主工作区从文件树重构为 Activity Bar + 分类导航 + 对话驱动，覆盖场景入口、设置模态框、编辑模式、指令体系和面板拖拽 |
 
 ## Project
 
