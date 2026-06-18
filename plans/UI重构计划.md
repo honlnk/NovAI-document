@@ -1,6 +1,6 @@
 # UI 重构计划
 
-最后更新：2026-06-16
+最后更新：2026-06-18
 
 ## 一、背景与动机
 
@@ -276,14 +276,16 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 └──────────────────────────────────────────┘
 ```
 
-- 监听内容面板的 `selectionchange` / `mouseup`，取选中文本（非空时记录）
+- 监听内容面板的 `selectionchange` / `mouseup`，取选中文本（非空时记录），单段上限 500 字符（超出截断加 `…`），仅预览模式触发
 - 输入框上方出现引用 chip：`📄 第003章 · "看见一尊石像" ×`
-- 发送消息时，引用内容拼到 user message 前缀：
+- 发送消息时，引用作为独立 `quote` 字段透传（不再拼到 `instruction` 前缀），core 层在 `buildAgentUserContext` 注入为独立段：
   ```
-  关于「第003章」中的内容：「看见一尊石像」
-  
-  用户问题：{实际输入}
+  用户意图：{实际输入}
+
+  用户引用的内容：
+  {选中文本}
   ```
+- 用户消息气泡上方以独立引用块展示（区别于拼进正文的旧方案）
 - chip 点 × 清除引用
 - **切换文件清空引用**（绑定当前文件，避免跨文件引用混乱）
 - 本轮只做单段，多段引用后置
@@ -347,10 +349,17 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 
 ### 5.5 core 层契约影响
 
-本轮重构**主要是 app 层**，core 契约变更最小：
+本轮重构**以 app 层为主**，但 R5（选中内容引用）实施时发现 core 层也需要配合改动，原计划「不动 core 的 `buildAgentMessages`」的判断已修正：
 
 - `previewElementExtraction` 的「提取即落盘」行为需拆分（配合 4.1.2 的「预览-确认-写入」流程）。具体是改 core 还是 app 层做二次封装，实施时再定
-- 场景 prompt、选中引用拼接到 user message 的逻辑在 app 层的 chatStore / agentService 调用处完成，不动 core 的 `buildAgentMessages`
+- **R5 已落地的 core 改动**：选中引用并非在 app 层拼到 `instruction`，而是作为独立 `quote` 字段从 app 一路透传到 core：
+  - `core/types/chat.ts`：`UserTextMessage` 与 `ChatTurnInput` 新增可选 `quote?: string`
+  - `core/services/types.ts`：`ChatMessageView` 的 user 分支、`RunAgentTurnInput` 新增 `quote?`
+  - `core/services/agent-service.ts`：`toChatMessageView` 透传 quote，`runTurn` 在重组 `ChatTurnInput` 时透传 `quote: input.quote`
+  - `core/core/chat/session.ts`：`createUserMessage` 接收 quote 并写入消息，`runChatTurn`、`buildAgentMessages` 透传
+  - `core/core/agent/prompt.ts`：`buildAgentUserContext` 将引用作为独立段注入（「用户引用的内容：」）
+  - 这样做的好处：引用与用户意图在消息模型上解耦，展示层（用户气泡上方的引用块）和模型输入层（prompt 注入）可以独立演化
+- 场景 prompt 注入仍由 app 层在调用 agent 前写入 config 的 `activeScenePromptPath`，core 通过读取 config 获取，无需额外透传字段
 
 ---
 
@@ -363,14 +372,14 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 **目标**：用 ActivityBar + CategoryPanel 替换 FileTreeSidebar，分类切换可工作，数据源复用现有 fileService。
 
 **任务**：
-- [ ] 新建 ActivityBar.vue（5 图标 + 返回首页）
-- [ ] 新建 CategoryPanel.vue 容器
-- [ ] 新建 ChapterList.vue（读 chapters/ 渲染）
-- [ ] 新建 ElementList.vue（6 组写死中文 + 折叠）
-- [ ] 新建 PromptList.vue（系统 + 场景拉平，场景激活态联动 config）
-- [ ] 新建 ConversationList.vue（占位）
-- [ ] ProjectView 接入新结构，移除 FileTreeSidebar
-- [ ] 文件选中仍走现有 `projectStore.openFile`，内容面板联动不变
+- [x] 新建 ActivityBar.vue（5 图标 + 返回首页）
+- [x] 新建 CategoryPanel.vue 容器
+- [x] 新建 ChapterList.vue（读 chapters/ 渲染）
+- [x] 新建 ElementList.vue（6 组写死中文 + 折叠）
+- [x] 新建 PromptList.vue（系统 + 场景拉平，场景激活态联动 config）
+- [x] 新建 ConversationList.vue（占位）
+- [x] ProjectView 接入新结构，移除 FileTreeSidebar
+- [x] 文件选中仍走现有 `projectStore.openFile`，内容面板联动不变
 
 **验收**：左侧可切换 5 个分类，章节/要素/提示词列表正确渲染，点击文件能在右侧打开。
 
@@ -379,10 +388,10 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 **目标**：移除设置路由，改为模态框。
 
 **任务**：
-- [ ] SettingsView 内容迁移为 SettingsModal.vue
-- [ ] ActivityBar 设置图标打开模态框
-- [ ] router.ts 移除 settings 路由
-- [ ] FirstTimeGuide 的「去配置」改为打开模态框
+- [x] SettingsView 内容迁移为 SettingsModal.vue
+- [x] ActivityBar 设置图标打开模态框
+- [x] router.ts 移除 settings 路由
+- [x] FirstTimeGuide 的「去配置」改为打开模态框
 
 **验收**：点设置图标弹出模态框，四个 tab 功能完整，关闭返回主工作区，无路由跳转。
 
@@ -391,11 +400,11 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 **目标**：预览/原始 toggle 升级为三态分段控件，新增编辑模式。
 
 **任务**：
-- [ ] ContentPanel toggle 改分段控件
-- [ ] 新增编辑模式 textarea
-- [ ] Ctrl+S 保存 + dirty 标记
-- [ ] 接入 File System Access writeFile
-- [ ] 可编辑范围校验（章节/提示词/要素）
+- [x] ContentPanel toggle 改分段控件
+- [x] 新增编辑模式 textarea
+- [x] Ctrl+S 保存 + dirty 标记
+- [x] 接入 File System Access writeFile
+- [x] 可编辑范围校验（章节/提示词/要素）
 
 **验收**：可在编辑模式下修改三类文件并 Ctrl+S 保存到磁盘。
 
@@ -416,10 +425,10 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 **目标**：右侧选中文字可携带为引用。
 
 **任务**：
-- [ ] ContentPanel 监听 selection
-- [ ] SelectionChip.vue 引用可视化
-- [ ] 发送消息时拼接引用前缀
-- [ ] 切换文件清空引用
+- [x] ContentPanel 监听 selection
+- [x] SelectionChip.vue 引用可视化
+- [x] 发送消息时拼接引用前缀
+- [x] 切换文件清空引用
 
 **验收**：选中文字后输入框出现引用 chip，发送时消息携带引用，切文件后 chip 清除。
 
@@ -454,15 +463,15 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 ## 七、验收清单（整体）
 
 ### 功能验收
-- [ ] Activity Bar 5 个分类可切换，返回首页可用
-- [ ] 章节/要素/提示词列表正确渲染，要素分组显示中文名
-- [ ] 场景激活态在 Activity Bar 提示词列表、输入框 chip 两处联动
-- [ ] 设置模态框四个 tab 功能完整，无路由跳转
-- [ ] 内容面板三态切换正常，编辑模式可保存
-- [ ] `@场景` 指令完整工作流
-- [ ] 选中引用可携带发送，切文件清空
-- [ ] `/提取要素` 完整工作流（预览-确认-写入）
-- [ ] 面板拖拽改宽并持久化
+- [x] Activity Bar 5 个分类可切换，返回首页可用
+- [x] 章节/要素/提示词列表正确渲染，要素分组显示中文名
+- [ ] 场景激活态在 Activity Bar 提示词列表、输入框 chip 两处联动（提示词列表已联动，输入框 chip 待 R4）
+- [x] 设置模态框四个 tab 功能完整，无路由跳转
+- [x] 内容面板三态切换正常，编辑模式可保存
+- [ ] `@场景` 指令完整工作流（R4 待实施）
+- [x] 选中引用可携带发送，切文件清空
+- [ ] `/提取要素` 完整工作流（预览-确认-写入）（R6 待实施）
+- [ ] 面板拖拽改宽并持久化（R7 待实施）
 
 ### 体验验收
 - [ ] 创作者无需理解文件树即可上手
@@ -499,3 +508,29 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 - 本计划是对 [UI 设计文档](../product/UI设计文档.md) 的**迭代修订**。UI 设计文档描述的「文件树 + 设置页」结构将被本计划的「Activity Bar + 模态框」取代
 - 实施完成后，需同步更新 UI 设计文档（`product/UI设计文档.md`）和 UI 开发计划（`project/UI开发计划.md`）中与本次重构冲突的章节
 - 本计划不改动 [Agent 控制能力补强计划](Agent控制能力补强计划.md) 和 [Element 要素体系优化计划](Element要素体系优化计划.md) 的范围，但 `/提取要素` 的预览-确认流程会与 Element 计划的「要素模板」有交集，实施时对齐
+
+---
+
+## 十、实施记录
+
+记录各 Phase 实际落地情况、与计划的偏差和后续注意事项。按 Phase 顺序追加，最新在上。
+
+### 2026-06-16：Phase R1 / R2 / R3 / R5 完成
+
+四个 Phase 已合并提交落地（主仓库 `honlnk/dev` 分支）：
+
+| Phase | 主仓库提交 | 摘要 |
+|:------|:----------|:-----|
+| R1 | `b87270f` | `refactor(layout): 用 Activity Bar 和分类面板替换文件树` |
+| R2 | `39a0899` | `refactor(app): 设置入口改为模态框并增强密码输入框` |
+| R3 | `4b16168` + `82320ed` | `feat(app): 内容面板新增编辑模式并统一 Tooltip 交互` + Tooltip 显示延迟修复 |
+| R5 | `49fde65` | `feat(app): 选中内容引用支持独立引用块展示与模型注入` |
+
+**与计划的偏差和补充决策**：
+
+1. **R2 额外增强**：所有 API Key 输入框（LLM / Embedding / Rerank）统一替换为可复用的 `PasswordInput.vue`，右侧增加眼睛图标切换显隐。这是计划外的体验增强，属于 R2「设置模态框」的顺带改进
+2. **R3 三态控件改图标**：预览/编辑/原始三态按钮由文字改为图标（eye / pencil / code），并附 Tooltip（300ms 延迟）。原因是文字标签占用空间过大，图标更紧凑
+3. **R5 core 层改动（重要偏差）**：原计划 5.5 节判断「不动 core 的 `buildAgentMessages`」，实施时推翻此判断。引用采用独立 `quote` 字段从 app 透传到 core，理由是让展示层与模型输入层解耦，避免把引用硬拼进 `instruction`。具体改动见 5.5 节
+4. **R5 调试遗留**：实施中曾因 core service 层 `runTurn` 漏传 `quote` 导致引用未送达模型，已修复。调试期间在 `agent_run_start` 日志 data 中补了 `quote` 字段便于排查，此增强保留
+
+**待实施 Phase**：R4（`@场景` 指令）、R6（`/提取要素` 斜杠指令）、R7（面板拖拽改宽）。建议顺序 R7 → R4 → R6，先清轻量项再做复杂指令。
