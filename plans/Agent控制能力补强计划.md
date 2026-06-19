@@ -53,7 +53,7 @@ NovAI 的产品方向是让 AI 通过工具读写小说项目文件。这个方�
 
 ## 实施计划
 
-### Step 1：结构化文件变更结果
+### Step 1：结构化文件变更结果 ✅ 已完成（`949d540`，2026-06-20）
 
 让写入类工具直接返回结构化变更信息。
 
@@ -65,6 +65,8 @@ NovAI 的产品方向是让 AI 通过工具读写小说项目文件。这个方�
 - `DeleteFile` 返回 `{ type: 'deleted', path, trashPath }`
 
 完成后，`agent-service` 不再根据工具调用和工具结果文本推导 `changedFiles`。
+
+> 实施说明：`ToolDefinition` 新增可选 `extractFileChange(output)`，4 个写工具各自实现（CreateFile/EditFile/RenameFile/DeleteFile）。结构化 `FileChange` 经 `AgentToolResultMessage.fileChange` 与 `tool-result` 事件透传；`agent-service.collectChangedFiles` 改读结构化字段，删除 `isSuccessfulToolResult`/`extractTrashPath`/`collectToolResultTextById`/`toChangedFile` 文本反推逻辑；`session.lastWrittenPath` 同步改读 `fileChange`。补 `extractFileChange` 与 `tool-execution` 透传 Vitest 测试。`changedFiles` 已完全来自工具层结构化结果，不再依赖工具结果文案。
 
 ### Step 2：写入前确认与 diff 预览
 
@@ -139,11 +141,11 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 - 用户明确说“不读文件”时，读取类工具会被执行层拒绝。（Step 5，未实现）
 - 用户明确说“不写文件”时，写入类工具会被执行层拒绝。（Step 5，未实现）
 - 修改 `prompts/system.md` 后，同一会话下一轮能使用最新版提示词。（Step 6，未实现）
-- `changedFiles` 来自工具层结构化结果，不依赖工具结果文案。（Step 1，未实现）
+- `changedFiles` 来自工具层结构化结果，不依赖工具结果文案。（Step 1，已完成 `949d540`）
 
 ## 当前状态
 
-**Step 4（停止运行）已完成**（`8feb3a4`，2026-06-17），其余 Step 尚未开始。
+**Step 1（结构化文件变更结果）已完成**（`949d540`，2026-06-20），**Step 4（停止运行）已完成**（`8feb3a4`，2026-06-17）。其余 Step（2/3/5/6）尚未开始。
 
 相关预留已经存在：
 
