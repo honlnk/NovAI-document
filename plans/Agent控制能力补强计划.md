@@ -112,7 +112,7 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 > 实施说明：`AbortController` 已落地（chat-store 持有 `AbortController`，`isRunning/isStopping/abortRun` 控制状态）。**Query Guard 与队列策略仍未实现**，后续可继续在 Step 1/2/3 的基础上补齐。
 
-### Step 5：用户即时工具约束
+### Step 5：用户即时工具约束 ✅ 已完成（`e774d2c`，2026-06-20）
 
 在每轮用户指令进入 Agent Loop 前识别工具约束。
 
@@ -125,7 +125,11 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 约束应在工具执行层强制校验，而不是只写进 system prompt。
 
-### Step 6：system prompt 刷新
+> 实施说明：采用「软约束 + 硬约束」双层设计，新增 `packages/core/src/core/agent/tool-policy.ts`。`ToolPolicy`（`{ allowRead, allowWrite }`）由 `parseToolPolicy(instruction)` 从用户本轮指令解析——识别「否定词（不要/别/禁止/请勿…）+ 读/写动作词」成对组合（6 字符窗口匹配，覆盖「不要读取文件」「别去查」等间隔表达），以及「不要碰文件/别动文件」这类通用动词的全禁表达。`isToolDisabledByPolicy` 用 `tool.isReadOnly` 二分判定（不硬编码工具名，新工具自动归类），`describePolicyDenial` 生成回灌模型的拒绝说明。**软约束**：`filterAvailableTools` 在 `query()` 入口把被禁工具从发给模型的 schema 列表里移除（源头过滤），`describeActivePolicy` 在 `buildAgentUserContext` 里注入本轮约束声明让模型主动避免。**硬约束**：`executeAgentTool` 在参数校验后、写工具确认流程前检查策略，命中直接返回失败 tool result 回灌模型（不依赖 prompt，模型即使无视也拦得住）。`agent-service.runTurn` 每轮从 `input.instruction` 解析策略并贯穿整条调用链。补 `tool-policy.test.ts` 覆盖读禁/写禁/双重禁/通用动词/肯定句不误触发等场景。
+>
+> 注：「只读不写」「只操作当前文件」这两条更细的策略未在第一版实现，当前覆盖「不读」与「不写」两类，可按需扩展。
+
+### Step 6：system prompt 刷新 ✅ 已完成（`71c2d42`，2026-06-20）
 
 处理 `prompts/system.md` 同一会话内变更后的刷新问题。
 
@@ -137,19 +141,26 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 第一版建议使用 hash 自动替换，减少用户理解成本。
 
+> 实施说明：采用 hash 自动替换方案（用户无感，最省理解成本）。`session.ts` 的 `runChatTurn` 每轮运行前用 `buildAgentSystemPrompt({ systemPrompt, scenePrompt })` 重新拼出本轮 system 内容，经 `hashContent`（FNV-1a 32 位，与 ReadFileState / RAG indexer 复用同一算法）算出 `newSystemHash`，与 `session.systemPromptHash` 比对——不一致时调 `refreshSystemMessageContent` 原地替换 `agentMessages[0]`（system message 恒在 index 0，query 循环只 push assistant/tool，替换不破坏序列合法性），并把最新 hash 写回 `session.systemPromptHash`。这样 `system.md` 或场景提示词（`.md`）任一变化都会在下一轮自动反映。`ChatSessionState.systemPromptHash` 为新增字段。补 `session.test.ts` 覆盖正常替换、空消息、非 system 首位原样返回等用例。
+
 ## 验收标准
 
 - 写入类工具执行前，UI 能收到确认事件。（Step 2，已完成 `0707809`）
 - 用户确认后写入生效，拒绝后文件不变且 Agent 能继续解释或调整。（Step 3，已完成 `0707809`/`b0651e7`）
 - ✅ Agent 运行中可以停止，停止后不再进入下一轮模型调用。（Step 4，已完成）
-- 用户明确说“不读文件”时，读取类工具会被执行层拒绝。（Step 5，未实现）
-- 用户明确说“不写文件”时，写入类工具会被执行层拒绝。（Step 5，未实现）
-- 修改 `prompts/system.md` 后，同一会话下一轮能使用最新版提示词。（Step 6，未实现）
+- 用户明确说“不读文件”时，读取类工具会被执行层拒绝。（Step 5，已完成 `e774d2c`）
+- 用户明确说“不写文件”时，写入类工具会被执行层拒绝。（Step 5，已完成 `e774d2c`）
+- 修改 `prompts/system.md` 后，同一会话下一轮能使用最新版提示词。（Step 6，已完成 `71c2d42`）
 - `changedFiles` 来自工具层结构化结果，不依赖工具结果文案。（Step 1，已完成 `949d540`）
 
 ## 当前状态
 
-**Step 1（结构化文件变更结果）、Step 2/3（写入前确认 + diff 预览 + 暂停/确认/拒绝 + 旧残留清理）、Step 4（停止运行）均已完成**。剩余 Step 5（用户即时工具约束）、Step 6（system prompt 同会话刷新）尚未开始。
+**Step 1（结构化文件变更结果）、Step 2/3（写入前确认 + diff 预览 + 暂停/确认/拒绝 + 旧残留清理）、Step 4（停止运行）、Step 5（用户即时工具约束）、Step 6（system prompt 同会话刷新）均已全部完成**。本计划六个 Step 全部落地，Agent 控制能力主线收束。
+
+后续可继续延伸的方向（非本计划范围）：
+
+- Query Guard / 工具队列策略（Step 4 的 AbortController 已落地，更细粒度的队列控制仍可补）。
+- 「只读不写」「只操作当前文件」这类更细的工具策略（Step 5 第一版只覆盖「不读」与「不写」两类）。
 
 相关预留已经存在：
 
