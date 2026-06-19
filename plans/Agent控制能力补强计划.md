@@ -68,7 +68,7 @@ NovAI 的产品方向是让 AI 通过工具读写小说项目文件。这个方�
 
 > 实施说明：`ToolDefinition` 新增可选 `extractFileChange(output)`，4 个写工具各自实现（CreateFile/EditFile/RenameFile/DeleteFile）。结构化 `FileChange` 经 `AgentToolResultMessage.fileChange` 与 `tool-result` 事件透传；`agent-service.collectChangedFiles` 改读结构化字段，删除 `isSuccessfulToolResult`/`extractTrashPath`/`collectToolResultTextById`/`toChangedFile` 文本反推逻辑；`session.lastWrittenPath` 同步改读 `fileChange`。补 `extractFileChange` 与 `tool-execution` 透传 Vitest 测试。`changedFiles` 已完全来自工具层结构化结果，不再依赖工具结果文案。
 
-### Step 2：写入前确认与 diff 预览
+### Step 2：写入前确认与 diff 预览 ✅ 已完成（`0707809`，2026-06-20）
 
 在执行写工具前生成确认请求。
 
@@ -81,7 +81,9 @@ NovAI 的产品方向是让 AI 通过工具读写小说项目文件。这个方�
 
 UI 事件使用已经预留的 `confirmation-required`。
 
-### Step 3：暂停、确认与拒绝
+> 实施说明：策略为「每次写操作都确认」（用户选定，最安全）。`ToolDefinition` 新增可选 `buildConfirmation(input)`，4 个写工具各自实现，从 `validatedInput` 构造 `WriteConfirmation`（edit/create 带完整文本用于 diff，rename/delete 仅路径级）。`tool-execution` 在 `tool.core.run` 前拦截写工具：调 `confirm` 回调等待用户决定，拒绝时不执行 run 并返回结构化拒绝结果回灌模型（让模型自然调整而非硬中止）；确认中断（停止）按拒绝处理。`agent-service` 新增确认注册表 `confirmationMap` + `respondConfirmation(confirmationId, accepted)`，`confirm` 回调发 `confirmation-required` 事件并 `await` UI 响应，出错/停止时 `rejectPendingConfirmations` 清理未决确认。app 层 chat store 加 `pendingConfirmation` + `confirmWriteTool`/`rejectWriteTool`，新建 `WriteConfirmationCard.vue`（抄 `ExtractionFlowPanel` 预览样式），ChatPanel 挂载。补 tool-execution 确认用例 4 个。
+
+### Step 3：暂停、确认与拒绝 ✅ 已完成（`0707809`/`b0651e7`，2026-06-20）
 
 Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
@@ -92,6 +94,8 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 - 用户关闭项目或刷新时，待确认请求如何恢复或丢弃。
 
 旧的 `pendingFileChange / confirmPendingFileChange` 可以选择清理，也可以作为参考重接，但不能长期和新 Agent Loop 并存。
+
+> 实施说明：与 Step 2 同一批次落地（同一提交 `0707809`）。拒绝语义采用「回灌模型让其调整」而非硬中止；确认与停止正交——等待确认期间用户仍可点停止，confirm 抛错按拒绝处理，由 query Loop 的 abort 检查接管。旧 `pendingFileChange / confirmPendingFileChange` / `discardPendingFileChange` / `createPendingFileChange` / `callTool` 全套旧残留已清理（`b0651e7`，约 -529 行），连同整个 `chat/tools.ts`（旧 `ToolDefinition.call` 体系）和 `types/chat.ts` 的 `PendingFileChange`/`ToolRuntimeContext`/旧 `ToolDefinition` 类型一并删除。新确认流程完全替代旧代码。
 
 ### Step 4：停止运行 ✅ 已完成（`8feb3a4`，2026-06-17）
 
@@ -135,8 +139,8 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 ## 验收标准
 
-- 写入类工具执行前，UI 能收到确认事件。（Step 2，未实现）
-- 用户确认后写入生效，拒绝后文件不变且 Agent 能继续解释或调整。（Step 3，未实现）
+- 写入类工具执行前，UI 能收到确认事件。（Step 2，已完成 `0707809`）
+- 用户确认后写入生效，拒绝后文件不变且 Agent 能继续解释或调整。（Step 3，已完成 `0707809`/`b0651e7`）
 - ✅ Agent 运行中可以停止，停止后不再进入下一轮模型调用。（Step 4，已完成）
 - 用户明确说“不读文件”时，读取类工具会被执行层拒绝。（Step 5，未实现）
 - 用户明确说“不写文件”时，写入类工具会被执行层拒绝。（Step 5，未实现）
@@ -145,7 +149,7 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 ## 当前状态
 
-**Step 1（结构化文件变更结果）已完成**（`949d540`，2026-06-20），**Step 4（停止运行）已完成**（`8feb3a4`，2026-06-17）。其余 Step（2/3/5/6）尚未开始。
+**Step 1（结构化文件变更结果）、Step 2/3（写入前确认 + diff 预览 + 暂停/确认/拒绝 + 旧残留清理）、Step 4（停止运行）均已完成**。剩余 Step 5（用户即时工具约束）、Step 6（system prompt 同会话刷新）尚未开始。
 
 相关预留已经存在：
 
