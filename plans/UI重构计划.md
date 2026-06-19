@@ -1,6 +1,6 @@
 # UI 重构计划
 
-最后更新：2026-06-19
+最后更新：2026-06-20
 
 ## 一、背景与动机
 
@@ -319,10 +319,14 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 | `packages/app/src/components/category/ElementList.vue` | 要素分类分组折叠列表 |
 | `packages/app/src/components/category/PromptList.vue` | 提示词分类列表 |
 | `packages/app/src/components/category/ConversationList.vue` | 对话分类列表（本轮占位）|
-| `packages/app/src/components/chat/ComposerCommand.vue` | 输入框指令弹层（@场景 / /提取要素）|
+| `packages/app/src/components/chat/SceneCommandPopover.vue` | `@场景` 指令弹层（场景专用单选）|
+| `packages/app/src/components/chat/SlashCommandMenu.vue` | `/` 斜杠命令菜单（命令注册表驱动，可扩展）|
+| `packages/app/src/components/chat/ChapterPicker.vue` | 章节多选弹框 |
+| `packages/app/src/components/chat/ExtractionFlowPanel.vue` | 要素提取流程面板（按 phase 渲染进度/预览/结果/错误）|
 | `packages/app/src/components/chat/SceneChip.vue` | 当前激活场景 chip |
 | `packages/app/src/components/chat/SelectionChip.vue` | 选中内容引用 chip |
-| `packages/app/src/components/chat/ChapterPicker.vue` | 章节多选弹框 |
+| `packages/app/src/composables/useElementExtraction.ts` | 要素提取流程状态 composable |
+| `packages/app/src/constants/slash-commands.ts` | 斜杠命令注册表 |
 | `packages/app/src/components/settings/SettingsModal.vue` | 设置模态框（迁移自 SettingsView）|
 
 ### 5.2 重构文件
@@ -351,7 +355,7 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 
 本轮重构**以 app 层为主**，但 R5（选中内容引用）实施时发现 core 层也需要配合改动，原计划「不动 core 的 `buildAgentMessages`」的判断已修正：
 
-- `previewElementExtraction` 的「提取即落盘」行为需拆分（配合 4.1.2 的「预览-确认-写入」流程）。具体是改 core 还是 app 层做二次封装，实施时再定
+- ~~`previewElementExtraction` 的「提取即落盘」行为需拆分（配合 4.1.2 的「预览-确认-写入」流程）~~（R6 实施时确认无需拆分：`previewElementExtraction` 已是纯提取、`writeExtractedElements` 已是纯写入，core 契约本就解耦。详见第十章实施记录）
 - **R5 已落地的 core 改动**：选中引用并非在 app 层拼到 `instruction`，而是作为独立 `quote` 字段从 app 一路透传到 core：
   - `core/types/chat.ts`：`UserTextMessage` 与 `ChatTurnInput` 新增可选 `quote?: string`
   - `core/services/types.ts`：`ChatMessageView` 的 user 分支、`RunAgentTurnInput` 新增 `quote?`
@@ -412,13 +416,13 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 
 **目标**：输入框支持 `@场景` 选择并持久化激活场景。
 
-**状态**：进行中
+**状态**：已完成
 
 **任务**：
-- [ ] ComposerCommand.vue 指令弹层
-- [ ] SceneChip.vue 激活场景可视化
-- [ ] `@场景` 触发 → 选择 → 写回 `activeScenePromptPath` → 显示 chip
-- [ ] 会话首轮注入限制的切换提示
+- [x] SceneCommandPopover.vue 指令弹层（场景专用单选，非计划中的通用 ComposerCommand）
+- [x] SceneChip.vue 激活场景可视化
+- [x] `@场景` 触发 → 选择 → 写回 `activeScenePromptPath` → 显示 chip
+- [ ] 会话首轮注入限制的切换提示（未实施，后续按需补）
 
 **验收**：`@场景` 弹层可选，选中后 chip 显示且 config 更新，新建会话生效。
 
@@ -438,15 +442,15 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 
 **目标**：`/提取要素` 替代内容面板的提取按钮，流程改为「预览-确认-写入」。
 
-**状态**：进行中
+**状态**：已完成（含增强：斜杠命令菜单系统）
 
 **任务**：
-- [ ] ChapterPicker.vue 章节多选弹框
-- [ ] `/提取要素` 触发流程
-- [ ] 对话流展示进度 + 候选预览
-- [ ] 用户确认后写入
-- [ ] 拆分 `previewElementExtraction` 的落盘行为（core 契约调整）
-- [ ] ContentPanel 移除原要素提取按钮区
+- [x] ChapterPicker.vue 章节多选弹框
+- [x] `/提取要素` 触发流程（增强为斜杠命令菜单，输入 `/` 即弹出命令列表）
+- [x] 对话流展示进度 + 候选预览（ExtractionFlowPanel 按 phase 渲染）
+- [x] 用户确认后写入
+- [x] ~~拆分 `previewElementExtraction` 的落盘行为（core 契约调整）~~（无需拆分，core 已解耦，见实施记录）
+- [x] ContentPanel 移除原要素提取按钮区
 
 **验收**：`/提取要素` 走完整对话流，候选可预览，确认后才落盘，原按钮区已移除。
 
@@ -469,13 +473,13 @@ NovAI 正式 UI 已完成第一轮开发（见 [UI 开发计划](../project/UI�
 ### 功能验收
 - [x] Activity Bar 5 个分类可切换，返回首页可用
 - [x] 章节/要素/提示词列表正确渲染，要素分组显示中文名
-- [ ] 场景激活态在 Activity Bar 提示词列表、输入框 chip 两处联动（提示词列表已联动，输入框 chip 待 R4）
+- [x] 场景激活态在 Activity Bar 提示词列表、输入框 chip 两处联动（R4）
 - [x] 设置模态框四个 tab 功能完整，无路由跳转
 - [x] 内容面板三态切换正常，编辑模式可保存
-- [ ] `@场景` 指令完整工作流（R4 进行中）
+- [x] `@场景` 指令完整工作流（R4）
 - [x] 选中引用可携带发送，切文件清空
-- [ ] `/提取要素` 完整工作流（预览-确认-写入）（R6 进行中）
-- [x] 面板拖拽改宽并持久化（R7 完成）
+- [x] `/提取要素` 完整工作流（预览-确认-写入）（R6）
+- [x] 面板拖拽改宽并持久化（R7）
 
 ### 体验验收
 - [ ] 创作者无需理解文件树即可上手
@@ -556,3 +560,29 @@ R7 已合并提交落地（主仓库 `honlnk/dev` 分支）：
 5. **拖拽跟手性**：拖拽期间 `dragstart` 事件暂停 `<aside>` 过渡动画（松手恢复），并给 `body` 加 `cursor-col-resize / select-none` 锁定光标与防误选
 
 **当前 UI 重构进度**：R1 / R2 / R3 / R5 / R7 已完成，R4（`@场景` 指令）、R6（`/提取要素` 斜杠指令）进行中。
+
+### 2026-06-19：Phase R4 / R6 完成（UI 重构全部完成）
+
+R4 与 R6 已合并提交落地（主仓库 `honlnk/dev` 分支）：
+
+| Phase | 主仓库提交 | 摘要 |
+|:------|:----------|:-----|
+| R4 | `936358b` | `feat(ui): 输入框支持 @场景 指令切换激活场景` |
+| R6 | `483fae7` | `feat(ui): 实现 /提取要素 斜杠指令与命令菜单` |
+
+**R4 实现要点与偏差**：
+
+1. **弹层组件名变更**：计划中的通用 `ComposerCommand.vue` 实施时改为场景专用的 `SceneCommandPopover.vue`（单选 + 键盘导航）。理由是 R6 的 `/提取要素` 需要章节多选 + 搜索 + 确认按钮，交互差异大，抽象通用组件反而耦合，不如各做专用弹层
+2. **@token 检测**：正则 `/(?:^|\s)@([^\s@]*)$/` 匹配光标前最近的 @token，捕获组作为筛选词。选中场景后用同正则替换清除 @token，光标回位
+3. **chip 双向联动**：ChatPanel 的 SceneChip 与 PromptList 的 ● 标记都读同一个 `activeScenePromptPath`，任一处切换通过 `handleChangeScene` → `changeActiveScenePromptPath` 写 config，双向同步
+4. **会话首轮注入提示**未实施（计划标 `[ ]`），后续按需补充
+
+**R6 实现要点与重要偏差**：
+
+1. **core 契约无需拆分（重要修正）**：计划 5.5 节担忧「拆分 previewElementExtraction 的落盘行为」，实施时确认**无需拆分**——`previewElementExtraction`（`element-service.ts:16`）本就是纯提取、`writeExtractedElements`（`element-service.ts:30`）本就是纯写入，core 契约本就解耦。R6 直接复用这两个函数串「预览-确认-写入」流程，core 层零改动
+2. **斜杠命令菜单增强（计划外）**：原计划是输入完整 `/提取要素` 触发，实施时升级为斜杠命令菜单系统——输入 `/` 即弹出命令列表（`SlashCommandMenu.vue`），支持筛选与键盘导航。新增命令注册表 `slash-commands.ts`，后续加 `/校对`、`/整理` 只需往数组加一项
+3. **流程状态独立 composable**：新建 `useElementExtraction.ts` 管理 phase（idle/extracting/preview/writing/done/error），不进 Agent 对话流（不污染 `chatStore.messages`），ChatPanel 的 ExtractionFlowPanel 按 phase 渲染对应界面
+4. **多章节智能合并**：逐章提取后，同 type 同 name 的候选项合并 body（去重段 `\n\n` 拼接）、relatedChapters 取并集、tags 去重；不同 name 直接 concat
+5. **ContentPanel 清理**：移除原要素提取按钮区（~95 行 template + 5 个函数 + 8 个 ref/computed + 相关 imports/emit），`elementsWritten` emit 从 ContentPanel 迁移到 ChatPanel
+
+**UI 重构全部完成**：R1 / R2 / R3 / R4 / R5 / R6 / R7 七个 Phase 全部落地。core 层在 R5 之后零改动（R4/R6/R7 均为纯 app 层）。
