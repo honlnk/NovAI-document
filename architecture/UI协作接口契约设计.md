@@ -322,16 +322,23 @@ getSession(projectId: string): Promise<ChatSessionView | null>
 runTurn(input: RunAgentTurnInput): Promise<RunAgentTurnResult>
 ```
 
-`stopRun()` 尚未落地，后续需要和 `AbortController`、Query Guard、队列策略一起设计。
+> [!note] 停止能力（2026-06-17 落地，`8feb3a4`）
+> 原计划单独的 `stopRun()` 函数未采用。停止能力改为「信号透传」形态：`RunAgentTurnInput.signal` 接收 `AbortSignal`，由 app 层（chat store）持有 `AbortController` 并在停止时调用 `abortRun()`。`runTurn` 内部把 signal 透传给 LLM 流式请求与 Agent Loop，停止时抛 `AgentAbortedError` 并保留已生成内容，作为正常结束回退到 `waiting-user`。
+>
+> Query Guard / 工具队列策略仍未实现，是 Agent 控制能力的后续延伸方向。
 
-建议输入：
+输入类型（已落地）：
 
 ```ts
 type RunAgentTurnInput = {
   projectId: string
   sessionId?: string
   instruction: string
+  /** 本轮引用的选中内容，注入到发给模型的 user context */
+  quote?: string
   activeFilePath?: string
+  /** 用户停止信号，透传到 Agent Loop。 */
+  signal?: AbortSignal
   onEvent?: (event: AgentUiEvent) => void
 }
 ```
