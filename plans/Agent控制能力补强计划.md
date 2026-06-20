@@ -127,7 +127,13 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 
 > 实施说明：采用「软约束 + 硬约束」双层设计，新增 `packages/core/src/core/agent/tool-policy.ts`。`ToolPolicy`（`{ allowRead, allowWrite }`）由 `parseToolPolicy(instruction)` 从用户本轮指令解析——识别「否定词（不要/别/禁止/请勿…）+ 读/写动作词」成对组合（6 字符窗口匹配，覆盖「不要读取文件」「别去查」等间隔表达），以及「不要碰文件/别动文件」这类通用动词的全禁表达。`isToolDisabledByPolicy` 用 `tool.isReadOnly` 二分判定（不硬编码工具名，新工具自动归类），`describePolicyDenial` 生成回灌模型的拒绝说明。**软约束**：`filterAvailableTools` 在 `query()` 入口把被禁工具从发给模型的 schema 列表里移除（源头过滤），`describeActivePolicy` 在 `buildAgentUserContext` 里注入本轮约束声明让模型主动避免。**硬约束**：`executeAgentTool` 在参数校验后、写工具确认流程前检查策略，命中直接返回失败 tool result 回灌模型（不依赖 prompt，模型即使无视也拦得住）。`agent-service.runTurn` 每轮从 `input.instruction` 解析策略并贯穿整条调用链。补 `tool-policy.test.ts` 覆盖读禁/写禁/双重禁/通用动词/肯定句不误触发等场景。
 >
-> 注：「只读不写」「只操作当前文件」这两条更细的策略未在第一版实现，当前覆盖「不读」与「不写」两类，可按需扩展。
+> 注：「只读不写」「只操作当前文件」这两条更细的策略已在第二轮补齐（见下方补充实施说明）。
+
+> 补充实施说明（第二轮）：补齐「只读不写」与「只操作当前文件」两条策略。`ToolPolicy` 新增可选字段 `allowedWritePath?: string` 承载路径约束。`parseToolPolicy` 签名扩展为 `(instruction, activeFilePath?)`：
+> - **只读不写**：识别「只读不改」「只看不写」「只分析不修改」等正面表达（正则「只/仅 + 读/看/分析/讨论 + (可选否定) + 写/改/动/修」），命中则 `allowWrite: false`，读取工具保留。
+> - **只操作当前文件**：识别「只改当前文件」「就在这个文件改」「别动其他文件」等表达，结合 `activeFilePath` 设 `allowedWritePath = normalizeProjectPath(activeFilePath)`；`activeFilePath` 为空时降级为 `allowWrite: false`（无法确定白名单则保守禁写）。路径约束是更具体的意图，会覆盖「别动」被 `hasWriteDenial` 误判的全禁写——语义为「能动当前文件」而非「全禁写」。
+>
+> 执行层新增 `isWriteBlockedByPathPolicy(toolName, validatedInput, policy)`，在现有读/写布尔约束检查之后、确认流程之前拦截：`RenameFile` 恒拦（重命名/移动会让「当前文件」概念失效）；`EditFile/CreateFile/DeleteFile` 取 `validatedInput.path` 与 `allowedWritePath` 比对，不等则拦；只读工具不拦。`agent-service.runTurn` 解析点改为 `parseToolPolicy(input.instruction, input.activeFilePath)`；app 层 `chat.ts` 的 `sendMessage` 补传 `activeFilePath: projectStore.activeFile?.path`（core/service 转发链此前已就绪）。`describeActivePolicy`/`describePolicyDenial` 扩展路径约束文案。测试新增 12 个用例（正面表达、路径约束解析、降级、`isWriteBlockedByPathPolicy`、执行层路径拦截），全量 91 个测试通过。
 
 ### Step 6：system prompt 刷新 ✅ 已完成（`71c2d42`，2026-06-20）
 
@@ -160,7 +166,6 @@ Agent Loop 在遇到需要确认的写操作时进入等待状态。
 后续可继续延伸的方向（非本计划范围）：
 
 - Query Guard / 工具队列策略（Step 4 的 AbortController 已落地，更细粒度的队列控制仍可补）。
-- 「只读不写」「只操作当前文件」这类更细的工具策略（Step 5 第一版只覆盖「不读」与「不写」两类）。
 
 相关预留已经存在：
 
