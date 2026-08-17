@@ -195,7 +195,18 @@ export async function streamFimCompletion(
 
 ## 当前状态
 
-待开始。本计划已明确技术方案与实施步骤，尚未编码。
+已完成（`2d60ecf`，2026-08-01）。Step 1-7 一次提交全部落地：
+
+- core 层：`completion-client.ts`（FIM 流式客户端，`choices[0].text` 主读 + `delta.content` 兜底，15s 流式空闲超时，`CompletionAbortedError` 中断时保留已生成部分）、`completion-service.ts`（enabled 门控转发）、`completion` 配置分组（types / defaults / project-fs 归一化）。
+- app 层：`useInlineCompletion.ts`（防抖 + AbortController + `Intl.Segmenter` 逐段接受，环境不支持时按字符回退）、SettingsModal「输入补全」tab（仿 rerank 分组）、`GhostTextOverlay.vue`、ChatPanel 集成（Tab 逐段接受 / Esc 丢弃 / 发送清理 / IME 与命令菜单打开时不调度）。
+- 测试：`completion-client.test.ts`（231 行）与 `useInlineCompletion.test.ts`（84 行）。
+
+与计划的偏差：
+
+1. **textarea 不做文字透明处理**：改为 textarea 正常渲染已输入文字（深色），覆盖层只渲染灰色建议、其中已输入部分用 `invisible` 撑布局定位。比原方案（textarea 透明 + 覆盖层渲染全部文字）少一层文字复制，规避了选区与滚动同步问题。
+2. **计划外顺带**：输入框区域改造为卡片式样式（`.chat-input-card` 白底大圆角描边 + focus 反馈，仿 gpt-image-studio）；共享样式类按计划建议抽取为 `.chat-input-base`。
+
+待真实使用验证：FIM 流式 delta 字段兼容性（代理网关改写场景）、延迟体验（见「风险与权衡」）。
 
 ## 风险与权衡
 
