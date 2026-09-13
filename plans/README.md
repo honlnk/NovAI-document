@@ -24,6 +24,9 @@
 | [UI 重构计划](UI重构计划.md) | 已完成 | R1-R7 全部落地：Activity Bar + 分类面板、设置模态框、内容面板三态 + 编辑模式、`@场景` 指令、选中内容引用、`/提取要素` 斜杠命令菜单、面板拖拽改宽 |
 | [对话输入框 AI 补全计划](对话输入框AI补全计划.md) | 已完成 | Step 1-7 一次提交全部落地（`2d60ecf`）：DeepSeek FIM 流式客户端 + completion 独立配置（仿 rerank 可开关）、`useInlineCompletion` 防抖 / abort / `Intl.Segmenter` 中文分词逐段接受、设置页「输入补全」tab、`GhostTextOverlay` 灰色建议覆盖层、ChatPanel 集成；计划外顺带完成输入框卡片式样式改造。FIM 字段兼容性与延迟体验待真实使用验证 |
 | [设置页优化计划](设置页优化计划.md) | 已完成 | 布局照抄 gpt-image-studio（三段式 + 左侧竖排导航 + BaseModal）、模型配置借鉴 duet（协议选择 + 获取模型列表 + 用途过滤，单配置无价格）、自动保存（防抖 600ms + 开关立即 + 关闭 flush + footer 状态）、四个模型面板统一测试连接（core 新增 `models-client.ts` 多协议拉取，DashScope 自动改写 compatible-mode 修复百炼 rerank 拉列表 404）；LLM 协议本期仅配置层，anthropic/gemini 生成适配待另立计划 |
+| [core 功能梳理与冗余问题诊断](core功能梳理与冗余问题诊断.md) | 已完成 | 诊断结论已全部执行：三条平行执行路径收敛为单 Loop、僵尸配置六件套清除、tool-policy（正则解析用户约束）删除、FIM 补全保留；三桶处置（真未完成/遗物删除/形状待定）与「先清理后重写」顺序作为 Agent Loop 重构（Stage 0）的输入落地 |
+| [参考系切换：Claude Code 转向 DeepSeek Harness](参考系切换-ClaudeCode转向DeepSeekHarness.md) | 已完成 | 决策落地为 [0005 决策记录](../decisions/0005-参考系切换至DeepSeekHarness.md)；dsh 的 compaction、spill、范围权限、turn/step loop、StreamChunk 词汇已重写进 Agent Loop；Cordis/事件溯源/多包/多协议/subagent/plan mode 全程未引入 |
+| [Agent Loop 重构开发计划](Agent%20Loop%20重构开发计划.md) | 已完成 | Stage 0-6 全部落地（`abfcbb4`→`323a7b0`，另含代理流式修复 `1ed4ce7`）：ModelView 模型消息源与显示层分离、CJK 感知 token 估算、8 段检查点压缩（阈值+溢出双触发、tool 配对回退、摘要自合并）、工作区范围权限、ReadFile/RagSearch spill、`agentMaxTurns` 可配置、流式打字机渲染；228 测试全绿 + 五项手动验收通过（读改全流程/流式与停止一致/低阈值压缩不失忆/权限拒绝/超长 spill），偏差与决策点见文末「执行结果」 |
 
 ## 已归档
 

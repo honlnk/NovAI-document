@@ -1,5 +1,7 @@
 # NovAI 第一阶段会话引擎与最小工具协议
 
+> **2026-09-14 更新**：Agent Loop 已按 [0005 决策](../decisions/0005-参考系切换至DeepSeekHarness.md) 以 DeepSeek Harness 为参照系重构完成（[Agent Loop 重构开发计划](../plans/Agent%20Loop%20重构开发计划.md)）。本文的消息模型（6 节）与会话状态（7 节）描述的是第一阶段形态，现已演进为：模型消息序列由 **ModelView**（`core/agent/model-view.ts`）独立维护、与显示层分离；上下文超限走**检查点摘要压缩**（`compaction.ts`，见 6.8 上下文摘要消息的落地形态）；超长工具结果走 **spill**（`spill.ts`）；写入确认收敛为**范围权限**（工作区内静默，`permission.ts`）。本文其余设计（工具协议、默认操作目标、RagSearch 接入）仍然有效。
+
 ## 一、文档目的
 
 本文档用于回答一个更接近实现的问题：
