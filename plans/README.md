@@ -10,14 +10,13 @@
 | :--- | :--- | :--- |
 | [章节格式调整计划](章节格式调整计划.md) | 基本落地，仍有尾项 | `chapters/*.txt`、旧 `.md` 兼容和要素提取兼容已落地；生成结果结构化处理仍待补齐 |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板、剧情块拆分、时间线拆分和整理指令仍待补齐 |
-| [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 施工中（W0、W1、W2 已完成） | **总路由**：下面四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill（`path.ts` 同批）→ W2 循环 core（高风险门禁）→ W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；排序由三处文件冲突决定（path.ts / session.ts / chat.ts+ChatPanel），每波门禁=测试全绿+文档验收要点+提交+索引状态流转。施工日志见文档末尾 |
+| [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 施工中（W0、W1、W2、W3 已完成） | **总路由**：下面四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill（`path.ts` 同批）→ W2 循环 core（高风险门禁）→ W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；排序由三处文件冲突决定（path.ts / session.ts / chat.ts+ChatPanel），每波门禁=测试全绿+文档验收要点+提交+索引状态流转。施工日志见文档末尾 |
 | [Agent 循环升级：队列与插话](待办-Agent循环升级-队列与插话.md) | 进行中（W2 core 已完成，`9ceb4ac`） | 照抄 dsh 分层循环：query `for`→`while(true)` + 抽干点（先抽干后压缩）+ steer 续命；双队列收件箱（next-turn 排队/next-step 插话，纯函数 + 随会话落盘、刷新后不自动消费）；session 层 driver 化（入队先于唤醒、停止清闩锁保队列）；`agentMaxTurns` 默认 0 不限、退化为安全阀。UI 跟随：输入框运行中解禁、Enter=排队 / Ctrl+Enter=插话、QueueDock（编辑/删除/立即插话/多条折叠）、steering 气泡与普通用户气泡零视觉区别。inject/blocked/concludesTurn/事件溯源明确不抄。六阶段 S1-S6；UI 阶段与「文件改动追踪与聊天区重设计」的 S5 排期相邻 |
+| [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 进行中（W3 账本 core 已完成，`ac8006e`） | 四件事一次做掉：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（抄 dsh before/after 机制）；③UI 三件：聊天区 dsh 风（去头像、工具行按 callId 合一、任务组默认折叠成计数摘要行）、文字版完成总结删除并改造为 zcode 风 diff 面板（change-summary 结构化消息随会话持久化，两者不并存；本期不做撤销）、右下角改会话级总数；④`GetFileChangeHistory` 只读工具按需取回历史（不长期注入）。六个实施阶段 S1-S6，dsh 锚点齐全 |
 
 ## 待开始
 
-| 文档 | 状态 | 说明 |
-| :--- | :--- | :--- |
-| [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 已定稿，待实施 | 四件事一次做掉：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（抄 dsh before/after 机制）；③UI 三件：聊天区 dsh 风（去头像、工具行按 callId 合一、任务组默认折叠成计数摘要行）、文字版完成总结删除并改造为 zcode 风 diff 面板（change-summary 结构化消息随会话持久化，两者不并存；本期不做撤销）、右下角改会话级总数；④`GetFileChangeHistory` 只读工具按需取回历史（不长期注入）。六个实施阶段 S1-S6，dsh 锚点齐全 |
+暂无。
 
 ## 已完成
 
