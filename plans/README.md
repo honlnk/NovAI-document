@@ -13,7 +13,13 @@
 
 ## 待开始
 
-暂无。已有明确方案但尚未编码的计划，先在这里登记。
+| 文档 | 状态 | 说明 |
+| :--- | :--- | :--- |
+| [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 已定稿，待执行 | **总路由**：下面四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill（`path.ts` 同批）→ W2 循环 core（高风险门禁）→ W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；排序由三处文件冲突决定（path.ts / session.ts / chat.ts+ChatPanel），每波门禁=测试全绿+文档验收要点+提交+索引状态流转 |
+| [写工具权限分级 + .novel/ 防护一致性](待办-写工具权限与novel防护一致性.md) | 已定稿，可实施 | 两件事：①五档权限（仅审阅/章节内容/素材内容/章节+素材/完全访问），按「动作+路径」判定，结构操作（新建/删除/改名）除完全访问档外一律弹卡；`.novel/` 与配置文件永远禁改；默认「章节+素材」档；档位持久化到 config + UI 下拉切换。②CreateFile/EditFile 补 `.novel/` 写防护（一行修复 + 大小写绕过修复）。判定逻辑落 `permission.ts` |
+| [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 已定稿，待实施 | 四件事一次做掉：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（抄 dsh before/after 机制）；③UI 三件：聊天区 dsh 风（去头像、工具行按 callId 合一、任务组默认折叠成计数摘要行）、文字版完成总结删除并改造为 zcode 风 diff 面板（change-summary 结构化消息随会话持久化，两者不并存；本期不做撤销）、右下角改会话级总数；④`GetFileChangeHistory` 只读工具按需取回历史（不长期注入）。六个实施阶段 S1-S6，dsh 锚点齐全 |
+| [待办：spill 重设计——让溢出内容可取回](待办-spill重设计-让溢出内容可取回.md) | 设计已定稿，待排期 | Stage 5 spill（`3b7a981`）方向反转：现状把 `.novel/spill/` 禁读导致省略标记成死指针、spill 只剩省 token 一半价值。改为可读化五件套：ReadFile 照搬 dsh 三道闸（行分页+单行截断+50KB 字节封顶，字节口径）退出 spill 白名单 → spill 开 ReadFile 口子 → 标记改取回提示 → spill 文件豁免 spill + RagSearch 可达 → 抄 cleanup 清理（保留期 7 天）。ReadFile 三道闸数值微调留待实测 |
+| [Agent 循环升级：队列与插话](待办-Agent循环升级-队列与插话.md) | 已定稿，待实施 | 照抄 dsh 分层循环：query `for`→`while(true)` + 抽干点（先抽干后压缩）+ steer 续命；双队列收件箱（next-turn 排队/next-step 插话，纯函数 + 随会话落盘、刷新后不自动消费）；session 层 driver 化（入队先于唤醒、停止清闩锁保队列）；`agentMaxTurns` 默认 0 不限、退化为安全阀。UI 跟随：输入框运行中解禁、Enter=排队 / Ctrl+Enter=插话、QueueDock（编辑/删除/立即插话/多条折叠）、steering 气泡与普通用户气泡零视觉区别。inject/blocked/concludesTurn/事件溯源明确不抄。六阶段 S1-S6；UI 阶段与「文件改动追踪与聊天区重设计」的 S5 排期相邻 |
 
 ## 已完成
 
