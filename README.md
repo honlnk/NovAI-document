@@ -46,6 +46,7 @@
 | [0002 Claude Code 映射](decisions/0002-ClaudeCode借鉴与映射设计.md) | NovAI 从 Claude Code 借鉴什么、不借鉴什么以及如何映射 |
 | [0003 项目总览索引](decisions/0003-项目总览索引决策记录.md) | 是否引入项目总览索引文件的阶段性记录（已被 0004 推翻） |
 | [0004 引入 NovAI 项目总览](decisions/0004-引入NovAI项目总览.md) | 推翻 0003，引入 prompts/NovAI.md 项目级累积记忆 + /生成项目记忆 斜杠命令 |
+| [0005 参考系切换至 DeepSeek Harness](decisions/0005-参考系切换至DeepSeekHarness.md) | Agent Loop 重构的参照系从 Claude Code 切换为 DeepSeek Harness，重写 compaction、spill、范围权限、turn/step 循环、StreamChunk 词汇 |
 
 ## Plans
 
@@ -59,6 +60,14 @@
 | [章节命名规范与整理工具计划](plans/章节命名规范与整理工具计划.md) | 章节统一命名 `第NNN章-标题.txt`，工具层格式校验 + 重号检测，配套旧项目批量整理工具；含 AI 章节整理完整形态的分级升级路径 |
 | [对话输入框 AI 补全计划](plans/对话输入框AI补全计划.md) | 对话输入框 Copilot 式 ghost text 补全：DeepSeek FIM 接口、独立可开关配置、防抖触发、Tab 逐段接受，只服务于提示词编写不碰正文 |
 | [设置页优化计划](plans/设置页优化计划.md) | 设置页布局照抄 gpt-image-studio、模型配置借鉴 duet（协议选择 + 获取模型列表）、自动保存替代保存按钮、四面板统一测试连接 |
+| [Agent Loop 重构开发计划](plans/Agent%20Loop%20重构开发计划.md) | 参考系从 Claude Code 切换至 DeepSeek Harness 的完整重构计划，Stage 0-6 覆盖 ModelView、压缩、spill、范围权限、轮次安全阀、流式打字机渲染 |
+| [core 功能梳理与冗余问题诊断](plans/core功能梳理与冗余问题诊断.md) | 重构前的核心代码诊断：三条平行执行路径、僵尸配置、tool-policy 位置，给出删除清单与「先清理后重写」顺序 |
+| [参考系切换：Claude Code 转向 DeepSeek Harness](plans/参考系切换-ClaudeCode转向DeepSeekHarness.md) | 切换论证、对 dsh 的核实、需要重新接地的文档锚点、dsh 借鉴清单（形状/来源/取舍） |
+| [实施路线图：四份待办施工波次](plans/实施路线图-四份待办施工波次.md) | W0-W6 波次排序与门禁：W0 小毛病 → W1 权限+spill → W2 循环 core → W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾 |
+| [待办：写工具权限与 .novel/ 防护一致性](plans/待办-写工具权限与novel防护一致性.md) | 写工具权限五档 + `.novel/` 写防护补齐（含大小写绕过修复），W1 波次施工依据 |
+| [待办：spill 重设计——让溢出内容可取回](plans/待办-spill重设计-让溢出内容可取回.md) | ReadFile 三道闸（行分页/单行字符/字节封顶）、`.novel/spill/` 可读化、spill 路径豁免二次 spill、7 天清理 |
+| [待办：文件改动追踪与聊天区重设计](plans/待办-文件改动追踪与聊天区重设计.md) | 改动账本 changeLedger、写工具 output 带 diff、聊天区 dsh 风折叠 + diff 面板、GetFileChangeHistory 工具（W3/W4/W5/W6 施工依据） |
+| [待办：Agent 循环升级——队列与插话](plans/待办-Agent循环升级-队列与插话.md) | 分层循环、双队列收件箱（next-turn 排队 / next-step 插话）、session driver 化、QueueDock、输入框解禁（W2/W4/W5/W6 施工依据） |
 
 ## Project
 
