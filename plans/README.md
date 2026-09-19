@@ -10,9 +10,6 @@
 | :--- | :--- | :--- |
 | [章节格式调整计划](章节格式调整计划.md) | 基本落地，仍有尾项 | `chapters/*.txt`、旧 `.md` 兼容和要素提取兼容已落地；生成结果结构化处理仍待补齐 |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板、剧情块拆分、时间线拆分和整理指令仍待补齐 |
-| [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 施工中（W0-W5 已完成，W6 收尾中） | **总路由**：下面四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill（`path.ts` 同批）→ W2 循环 core（高风险门禁）→ W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；排序由三处文件冲突决定（path.ts / session.ts / chat.ts+ChatPanel），每波门禁=测试全绿+文档验收要点+提交+索引状态流转。施工日志见文档末尾 |
-| [Agent 循环升级：队列与插话](待办-Agent循环升级-队列与插话.md) | 进行中（W2/W4/W5 已完成，`9ceb4ac`、`9510aa1`、`4dfbddd`，剩 W6 设置文案收尾） | 照抄 dsh 分层循环：query `for`→`while(true)` + 抽干点（先抽干后压缩）+ steer 续命；双队列收件箱（next-turn 排队/next-step 插话，纯函数 + 随会话落盘、刷新后不自动消费）；session 层 driver 化（入队先于唤醒、停止清闩锁保队列）；`agentMaxTurns` 默认 0 不限、退化为安全阀。UI 跟随：输入框运行中解禁、Enter=排队 / Ctrl+Enter=插话、QueueDock（编辑/删除/立即插话/多条折叠）、steering 气泡与普通用户气泡零视觉区别。inject/blocked/concludesTurn/事件溯源明确不抄。六阶段 S1-S6；UI 阶段与「文件改动追踪与聊天区重设计」的 S5 排期相邻 |
-| [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 进行中（W3/W4/W5 已完成，`ac8006e`、`9510aa1`、`4dfbddd`，剩 W6 历史工具收尾） | 四件事一次做掉：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（抄 dsh before/after 机制）；③UI 三件：聊天区 dsh 风（去头像、工具行按 callId 合一、任务组默认折叠成计数摘要行）、文字版完成总结删除并改造为 zcode 风 diff 面板（change-summary 结构化消息随会话持久化，两者不并存；本期不做撤销）、右下角改会话级总数；④`GetFileChangeHistory` 只读工具按需取回历史（不长期注入）。六个实施阶段 S1-S6，dsh 锚点齐全 |
 
 ## 待开始
 
@@ -22,6 +19,9 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
+| [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 已完成（W0-W6 全部完工，2026-09-19） | **总路由**：四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill → W2 循环 core → W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；每波门禁=测试全绿+文档验收要点+提交+索引状态流转。全程施工日志见文档末尾（含各波偏差记录） |
+| [Agent 循环升级：队列与插话](待办-Agent循环升级-队列与插话.md) | 已完成（W2/W4/W5，`9ceb4ac`、`9510aa1`、`4dfbddd`；W6 设置文案 `a02ffe5`） | 照抄 dsh 分层循环全部落地：query `for`→`while(true)` + step 边界抽干点（先抽干后压缩）+ steer 续命；双队列收件箱（next-turn 排队/next-step 插话，纯函数 + 随会话落盘、刷新后不自动消费）；session 层 driver 化（入队先于唤醒、停止清闩锁保队列、pendingWake 兜底停止竞态）；`agentMaxTurns` 默认 0 不限退化为安全阀（设置面板文案「0 表示不限制；仅当模型反复打转时用它兜底」）；UI：输入框运行中解禁、Enter=排队 / Ctrl+Enter=插话（空草稿+插话键=全部逐条插话）、QueueDock（编辑/删除/立即插话/多条折叠）、steering 气泡与普通用户气泡零视觉区别且非组边界。inject/blocked/concludesTurn/事件溯源明确未抄。三场景门禁以全链路集成测试 + W5 browser-use 冒烟验收 |
+| [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 已完成（W3/W4/W5，`ac8006e`、`9510aa1`、`4dfbddd`；W6 历史工具 `a02ffe5`） | 四件事全部落地：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（EditFile/CreateFile 实际应用文本 + extractChangeDiff）；③UI：聊天区 dsh 风（去头像、工具行按 toolCallId 合一 24px 单行、任务组默认折叠成计数摘要行、steering 非组边界、纯问答轮无折叠）、文字版完成总结删除并改造为 zcode 风 diff 面板（TurnChangesPanel + DiffLines/jsdiff，最新轮展开历史轮折叠、diff 懒展开、change-summary 随会话持久化）、右下角「本会话共修改 N 个文件」；④GetFileChangeHistory 只读工具按需取回历史（新→旧清单 + path/runId/limit 过滤，账本 getter 透传链，不长期注入）。本期未做撤销按钮（账本 diff 已预留）。四画面经 browser-use 冒烟验收 |
 | [写工具权限分级 + .novel/ 防护一致性](待办-写工具权限与novel防护一致性.md) | 已完成（W1，`32aac02`） | 五档权限落 `permission.ts`（按动作+路径判定，结构操作除完全访问档外一律弹卡），档位持久化 config + 设置面板「项目设置」下拉；CreateFile/EditFile 补 `.novel/` 写防护 + 大小写绕过修复（断言统一小写比较） |
 | [待办：spill 重设计——让溢出内容可取回](待办-spill重设计-让溢出内容可取回.md) | 已完成（W1，`32aac02`） | ReadFile 三道闸（行分页 2000 + 单行 2000 字符 + 50KB 字节封顶，字节口径行粒度截断）→ 退出 spill 白名单；`.novel/spill/` 开 ReadFile 口子（仍禁写删）；省略标记改取回指引；spill 路径豁免二次 spill；7 天启动清理挂 activateProject；prompt.ts 补 spill 说明。三道闸数值照抄 dsh 未微调，留待真实写作测试 |
 | [章节命名规范与整理工具计划](章节命名规范与整理工具计划.md) | 已完成 | 统一章节命名为 `第NNN章-标题.txt`，工具层格式校验 + 重号检测，EditFile 对称强制，配套旧项目批量整理工具（预览确认 + 缺标题正文兜底）。注意：本计划是原始「AI 章节整理模块」的重命名子集与前置基建，不涉及 AI 拆分/合并/字数感知，完整形态见文档末尾升级路径 |
