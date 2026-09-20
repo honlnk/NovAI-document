@@ -8,7 +8,6 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
-| [章节格式调整计划](章节格式调整计划.md) | 基本落地，仍有尾项 | `chapters/*.txt`、旧 `.md` 兼容和要素提取兼容已落地；生成结果结构化处理的计数刷新已收掉（`refreshTree` 回写最近项目计数 `86af61a`），自动打开变更文件与章节级元数据仍待补齐 |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板、剧情块拆分、时间线拆分和整理指令仍待补齐 |
 
 ## 待开始
@@ -19,6 +18,7 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
+| [章节格式调整计划](章节格式调整计划.md) | 已完成（2026-09-21 结项） | 五个 Step 全部落地：`chapters/*.txt` 切换、读取/预览适配、写入链路、要素提取兼容、旧项目策略（读取/预览/RenameFile 迁移保留；计数兼容已随 `43275d9` 口径收窄撤销）。衍生产出两条独立线：①章节命名规范与整理工具（强制链路仍在用，机械整理工具已下线）；②生成结果结构化处理（计数刷新已收掉 `86af61a`，自动打开变更文件与章节级元数据留在《当前进度》待开始清单，未立计划） |
 | [实施路线图：四份待办的施工波次](实施路线图-四份待办施工波次.md) | 已完成（W0-W6 全部完工，2026-09-19） | **总路由**：四份待办的施工顺序。W0 小毛病清扫 → W1 权限+spill → W2 循环 core → W3 账本 core → W4 service/store 合并 → W5 UI 合并 → W6 历史工具+收尾；每波门禁=测试全绿+文档验收要点+提交+索引状态流转。全程施工日志见文档末尾（含各波偏差记录） |
 | [Agent 循环升级：队列与插话](待办-Agent循环升级-队列与插话.md) | 已完成（W2/W4/W5，`9ceb4ac`、`9510aa1`、`4dfbddd`；W6 设置文案 `a02ffe5`） | 照抄 dsh 分层循环全部落地：query `for`→`while(true)` + step 边界抽干点（先抽干后压缩）+ steer 续命；双队列收件箱（next-turn 排队/next-step 插话，纯函数 + 随会话落盘、刷新后不自动消费）；session 层 driver 化（入队先于唤醒、停止清闩锁保队列、pendingWake 兜底停止竞态）；`agentMaxTurns` 默认 0 不限退化为安全阀（设置面板文案「0 表示不限制；仅当模型反复打转时用它兜底」）；UI：输入框运行中解禁、Enter=排队 / Ctrl+Enter=插话（空草稿+插话键=全部逐条插话）、QueueDock（编辑/删除/立即插话/多条折叠）、steering 气泡与普通用户气泡零视觉区别且非组边界。inject/blocked/concludesTurn/事件溯源明确未抄。三场景门禁以全链路集成测试 + W5 browser-use 冒烟验收 |
 | [文件改动追踪与聊天区重设计](待办-文件改动追踪与聊天区重设计.md) | 已完成（W3/W4/W5，`ac8006e`、`9510aa1`、`4dfbddd`；W6 历史工具 `a02ffe5`） | 四件事全部落地：①改动账本 changeLedger（事件驱动 append-only 挂会话、随 JSON 落盘，免疫压缩；修复压缩丢清单 + 总结只报一个文件两个 bug，删 `lastWrittenPath`）；②写工具 output 扩展留片段级 diff（EditFile/CreateFile 实际应用文本 + extractChangeDiff）；③UI：聊天区 dsh 风（去头像、工具行按 toolCallId 合一 24px 单行、任务组默认折叠成计数摘要行、steering 非组边界、纯问答轮无折叠）、文字版完成总结删除并改造为 zcode 风 diff 面板（TurnChangesPanel + DiffLines/jsdiff，最新轮展开历史轮折叠、diff 懒展开、change-summary 随会话持久化）、右下角「本会话共修改 N 个文件」；④GetFileChangeHistory 只读工具按需取回历史（新→旧清单 + path/runId/limit 过滤，账本 getter 透传链，不长期注入）。本期未做撤销按钮（账本 diff 已预留）。四画面经 browser-use 冒烟验收 |
