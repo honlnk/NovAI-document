@@ -312,7 +312,7 @@ type ElementType =
 
 1. 新建项目、打开/修复项目、恢复上次项目都会补齐 `elements/entities/`。
 2. `ElementType` 已包含 `entity`。
-3. 规则型要素提取可以将武器、武功、丹药、信物等写入 `entities/`。
+3. 要素提取（LLM 唯一路径，正则降级提取器已删除）可以将武器、武功、丹药、信物等写入 `entities/`。
 4. `entities/` 文件可参与要素解析、RAG metadata、检索过滤和 Agent `RagSearch` 工具结果。
 5. UI 内容面板已展示实体提取数量。
 6. 项目检查会识别缺失的要素子目录，旧项目不会因缺少 `entities/` 而报错，修复或恢复时会补齐目录。

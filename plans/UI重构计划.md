@@ -586,3 +586,5 @@ R4 与 R6 已合并提交落地（主仓库 `honlnk/dev` 分支）：
 5. **ContentPanel 清理**：移除原要素提取按钮区（~95 行 template + 5 个函数 + 8 个 ref/computed + 相关 imports/emit），`elementsWritten` emit 从 ContentPanel 迁移到 ChatPanel
 
 **UI 重构全部完成**：R1 / R2 / R3 / R4 / R5 / R6 / R7 七个 Phase 全部落地。core 层在 R5 之后零改动（R4/R6/R7 均为纯 app 层）。
+
+**后续演变补注（2026-09-20 文档漂移补丁）**：本计划「新增文件清单」中的 `components/chat/SceneChip.vue` 已在后续状态栏改版中删除（`f980e78`，无引用清理），激活场景 chip 现由 `components/layout/IndexStatusBar.vue` 左侧内联渲染（`e21f883` 状态栏接入 runStatus 与场景提示词）。功能未变，仅组件位置演变；正文清单保留原始落地记录不改。

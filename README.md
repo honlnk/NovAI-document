@@ -23,20 +23,20 @@
 | 文档 | 说明 |
 | :--- | :--- |
 | [产品愿景](product/产品愿景.md) | 项目定位、问题背景、核心架构、功能模块和阶段建议 |
-| [AI 功能需求](product/AI功能需求说明书.md) | AI 模块的输入输出、交互逻辑、边界条件和非功能需求 |
-| [UI 设计](product/UI设计文档.md) | 页面结构、布局设计和核心交互流程 |
+| [AI 功能需求](product/AI功能需求说明书.md) | AI 模块的输入输出、交互逻辑、边界条件和非功能需求；**目标需求说明书，含大量未实现远期功能，文首有实现状态警示** |
+| [UI 设计](product/UI设计文档.md) | 页面结构、布局设计和核心交互流程；§3.3 设置模态框已对齐当前实现，§4 交互流程多为未实现目标设计（文首有警示） |
 
 ## Architecture
 
 | 文档 | 说明 |
 | :--- | :--- |
-| [技术架构总览](architecture/技术架构设计.md) | 技术选型、存储架构、项目目录和关键实现要点 |
-| [开发前最小契约](architecture/开发前最小契约文档.md) | 最小数据结构、接口协议、文件格式、模块边界和首批接口 |
-| [第一阶段 Agent Loop 与工具协议](architecture/Agent会话引擎与工具协议.md) | 会话引擎、消息模型、Agent Loop、默认目标和最小工具协议 |
+| [技术架构总览](architecture/技术架构设计.md) | 技术选型、存储架构、项目目录和关键实现要点；§四目录结构为 monorepo 重构前旧规划（文首有警示） |
+| [开发前最小契约](architecture/开发前最小契约文档.md) | 最小数据结构、接口协议、文件格式、模块边界和首批接口；§4 配置契约已对齐当前 `defaults.ts`，目录结构为 monorepo 前旧规划（文首有警示） |
+| [第一阶段 Agent Loop 与工具协议](architecture/Agent会话引擎与工具协议.md) | 会话引擎、消息模型、Agent Loop、默认目标和最小工具协议；§十四落地状态已补今日实况，工具清单含 GetFileChangeHistory |
 | [工具系统设计](architecture/工具系统设计.md) | 受控项目文件工具体系、工具边界、使用顺序和后续优先级 |
-| [Agent 自主 RAG 工具](architecture/Agent自主RAG工具设计.md) | `RagSearch` 工具、向量库与要素文件关系、Agent 使用策略 |
-| [向量索引与重排序](architecture/向量索引与重排序设计.md) | Embedding 文本组装、召回、Rerank、索引失效与解释层 |
-| [UI 协作接口契约](architecture/UI协作接口契约设计.md) | core 与 UI 协作边界、services 接口层和 Agent UI 事件协议 |
+| [Agent 自主 RAG 工具](architecture/Agent自主RAG工具设计.md) | `RagSearch` 工具、向量库与要素文件关系、Agent 使用策略；§八优先级已标注 Orama 落地实况 |
+| [向量索引与重排序](architecture/向量索引与重排序设计.md) | Embedding 文本组装、召回、Rerank、索引失效与解释层；rerank.mode 当前固定 text |
+| [UI 协作接口契约](architecture/UI协作接口契约设计.md) | core 与 UI 协作边界、services 接口层和 Agent UI 事件协议；§3.5 文件索引与 §12 待办已对齐今日实况 |
 
 ## Decisions
 

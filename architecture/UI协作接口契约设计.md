@@ -147,11 +147,15 @@ src/
 | `packages/core/src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
 | `packages/core/src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
 | `packages/core/src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试 |
-| `packages/core/src/services/agent-service.ts` | Agent 会话、运行一轮指令、事件映射 |
-| `packages/core/src/services/generation-service.ts` | 流式生成调试接口 |
+| `packages/core/src/services/agent-service.ts` | Agent 会话、enqueue/updateQueue/stop、事件总线、队列快照、changeLedger 视图 |
 | `packages/core/src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
 | `packages/core/src/services/element-service.ts` | 要素提取预览 |
+| `packages/core/src/services/completion-service.ts` | 对话输入框 FIM 补全(enabled 门控转发) |
+| `packages/core/src/services/organize-service.ts` | 旧项目章节批量整理(扫描分类 + 批量改名) |
 | `packages/core/src/services/index.ts` | service barrel export |
+
+> [!note] 已删除的文件
+> `generation-service.ts` 曾在早期版本中作为「流式生成调试接口」存在,已在 Agent Loop 重构 Stage 0 清理(`abfcbb4`);相应能力由 `agent-service` 的 enqueue + 事件总线覆盖。
 
 当前 store 文件：
 
@@ -159,7 +163,8 @@ src/
 |:-----|:-----|
 | `packages/app/src/stores/project.ts` | 当前项目、最近项目、当前文件、项目生命周期状态 |
 | `packages/app/src/stores/settings.ts` | 当前项目配置、system prompt、连接测试状态 |
-| `packages/app/src/stores/chat.ts` | Agent 会话视图、运行事件、变更文件、默认目标 |
+| `packages/app/src/stores/chat.ts` | Agent 会话视图、enqueue/stop、队列、changeLedger、事件订阅、diff 面板数据 |
+| `packages/app/src/stores/chat-render.ts` | 聊天渲染纯函数:toolCallId 配对、任务组分组、steering 非组边界、纯问答无折叠(W5 新增) |
 
 对 UI 合作者来说，优先使用 store：
 
@@ -458,9 +463,14 @@ runRagDebug(projectId: string, query: string): Promise<{
 
 ## 九点五、GenerationService 与 ElementService
 
+> [!warning] GenerationService 已删除(2026-09-20 补丁)
+> `GenerationService` 及其 `streamGeneration` 调试接口已在 Agent Loop 重构 Stage 0(`abfcbb4`)**删除**,相应能力由 `AgentService.enqueueMessage()` + 事件总线 + 会话视图覆盖。本节关于 `GenerationService` 的描述仅作历史参考保留。
+>
+> `ElementService.previewElementExtraction` 仍存在于 `packages/core/src/services/element-service.ts`,是当前要素提取预览的唯一入口。
+
 这两组接口主要服务 Test Lab 调试能力。
 
-`GenerationService`：
+`GenerationService`(**已删除**,见上方警示):
 
 ```ts
 streamGeneration(
@@ -469,7 +479,7 @@ streamGeneration(
 ): Promise<string>
 ```
 
-`ElementService`：
+`ElementService`(仍存):
 
 ```ts
 previewElementExtraction(input: {
@@ -481,8 +491,8 @@ previewElementExtraction(input: {
 
 设计定位：
 
-- `streamGeneration` 是单次流式生成调试接口，不是 Agent 主工作流。
-- 正式创作流程应优先走 `AgentService.runTurn()`。
+- ~~`streamGeneration` 是单次流式生成调试接口,不是 Agent 主工作流。~~(已删除)
+- 正式创作流程应优先走 `AgentService.enqueueMessage()`(2026-09-20 补丁:原 `runTurn()` 已拆分为 `enqueueMessage` / `updateQueuedMessage` / `stopAgentRun`,见 W4 队列化改造)。
 - `previewElementExtraction` 面向章节要素提取预览，后续要和要素写入协议、用户确认、去重合并与覆盖策略一起完善。
 
 因此接口文档只定义 UI 与 core 的协作边界，不维护 Orama、RAG 或 Agent 工具的具体落地状态。
@@ -606,22 +616,24 @@ UI Component
    - `agent-types.ts`
    - `rag-types.ts`
    - `settings-types.ts`
+   - (2026-09-20 补丁:**仍未做**,在 [当前进度](../project/当前进度.md) 进行中)
 
 2. 补齐结构化错误转换
    - 当前 `NovAiError` 类型已定义
    - 但多数 service 仍沿用内部普通 Error 或 store 中的 message 兜底
+   - (2026-09-20 补丁:**仍未做**)
 
-3. 补齐 Agent 停止与写入确认
-   - `stopRun`
-   - `confirmation-required`
-   - 写入 diff 预览
-   - 暂停 / 恢复
+3. ~~补齐 Agent 停止与写入确认~~(2026-09-20 补丁:**已完成**,Agent 控制能力补强 Step 2/3/4 + W1 五档权限 + W2 driver 化停止)
+   - ~~`stopRun`~~
+   - ~~`confirmation-required`~~
+   - ~~写入 diff 预览~~
+   - ~~暂停 / 恢复~~
 
-4. 将工具层结构化变更结果上抛到 `AgentService`
-   - 取代当前基于工具文本摘要推导 `changedFiles` 的临时方式
+4. ~~将工具层结构化变更结果上抛到 `AgentService`~~(2026-09-20 补丁:**已完成**,Agent 控制能力补强 Step 1 结构化 FileChange + W3 changeLedger 账本)
+   - ~~取代当前基于工具文本摘要推导 `changedFiles` 的临时方式~~
 
-5. 让正式 UI 只依赖 store 或 service
-   - 前端展示层继续避免直接碰内部实现模块
+5. ~~让正式 UI 只依赖 store 或 service~~(2026-09-20 补丁:**已完成**)
+   - ~~前端展示层继续避免直接碰内部实现模块~~
 
 ---
 

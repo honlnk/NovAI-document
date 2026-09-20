@@ -773,6 +773,47 @@ type RagSearchOutput = {
 
 当前 `RagSearch` 已接入新的 Agent Loop，并作为模型可主动调用的正式只读工具加入 `packages/core/src/core/agent/tools.ts`。后续重点不再是“是否接入”，而是验证真实创作任务中的触发率、召回质量，以及模型是否会在需要完整设定时继续 `ReadFile(sourcePath)`。
 
+## 11.9 GetFileChangeHistory(2026-09-20 补丁补充)
+
+> [!note] 后续追加的只读工具
+> 本工具在本文档首次编写时不存在,是 W6 波次(`a02ffe5`)落地的。模型可按需取回「本会话改过的文件历史」。
+
+### 输入
+
+```ts
+type GetFileChangeHistoryInput = {
+  /** 返回条数上限:默认 20,最大 100 */
+  limit: number
+  /** 只看某个文件(含改名前后路径) */
+  path?: string
+  /** 只看某一轮(runId) */
+  runId?: string
+}
+```
+
+### 输出
+
+```ts
+type GetFileChangeHistoryOutput = {
+  /** 纯文本清单(新→旧逐条),末尾「共 N 条记录」 */
+  content: string
+  /** 过滤后的总记录数 */
+  totalCount: number
+  /** 实际返回条数 */
+  returnedCount: number
+}
+```
+
+### 用途
+
+- 压缩后模型想知道「我之前改过哪些文件」时按需取回(changeLedger 是数据源,不长期注入上下文)
+- 用户问「这个会话改过哪些文件」时模型可代查
+
+### 边界
+
+- 只读工具,不进 SPILLABLE_TOOLS,不长期注入 system prompt
+- 可发现性靠工具 description,`prompt.ts` 未加专门条目
+
 ---
 
 ## 十二、第一阶段模型输入格式建议
@@ -863,6 +904,9 @@ type RagSearchOutput = {
 
 ## 十四、当前落地状态与下一步
 
+> [!note] 落地状态说明(2026-09-20 补丁)
+> 本节描述的「已落地」与「下一步」是本文档**首次编写时**(早期)的状态快照。今日的实际落地情况请以下方补丁清单为准;原文保留作为历史对照。
+
 ### 14.1 已落地
 
 当前已经完成：
@@ -876,24 +920,34 @@ type RagSearchOutput = {
 7. 建立项目级日志系统
 8. 建立最近项目恢复能力
 
-### 14.2 下一步建议
+### 14.1+(2026-09-20 补丁)今日实际已落地
+
+在原文基础上,后续已完成的大块工作:
+
+- **Agent Loop 重构(Stage 0-6)**:参考系从 Claude Code 切换到 DeepSeek Harness,落地 ModelView、8 段检查点压缩、范围权限、spill、`agentMaxTurns` 安全阀、流式打字机渲染(见 [Agent Loop 重构开发计划](../plans/Agent%20Loop%20重构开发计划.md))
+- **Agent 控制能力补强(Step 1-6)**:写工具结构化 FileChange、写入前确认 + diff 预览、运行中停止、用户即时工具约束(已删)、system prompt 同会话刷新(见 [Agent 控制能力补强计划](../plans/Agent控制能力补强计划.md))
+- **队列与插话(W2-W6)**:turn/step 分层循环、双队列收件箱(next-turn 排队 / next-step 插话)、session driver 化、`agentMaxTurns` 默认 0 不限、QueueDock UI(见 [待办-Agent循环升级-队列与插话](../plans/待办-Agent循环升级-队列与插话.md))
+- **文件改动追踪(W3-W6)**:changeLedger append-only 账本、写工具 output 带 diff、change-summary 结构化消息、GetFileChangeHistory 只读工具(见 [待办-文件改动追踪与聊天区重设计](../plans/待办-文件改动追踪与聊天区重设计.md))
+- **写工具权限五档(W1)**:`permission.ts` 五档(review/chapter/material/chapter-material/full)+ `.novel/` 防护(见 [待办-写工具权限与novel防护一致性](../plans/待办-写工具权限与novel防护一致性.md))
+- **spill 重设计(W1)**:ReadFile 三道闸(2000 行/2000 单行字符/50KB 字节)、`.novel/spill/` 可读化、7 天清理(见 [待办-spill重设计-让溢出内容可取回](../plans/待办-spill重设计-让溢出内容可取回.md))
+- **`RagSearch` 已接入 Agent Loop**(模型可主动调用),**要素提取链路已落地**(LLM 唯一路径)
+
+### 14.2 下一步建议(原始,已被后续工作覆盖)
 
 下一批建议按这个顺序推进：
 
-1. 写工具权限确认
-   在 `EditFile / CreateFile` 真正执行前暂停 Query，让用户确认或拒绝。
+1. ~~写工具权限确认~~(已完成,见 Agent 控制 Step 2/3 + W1 五档权限)
+2. ~~Query Guard / AbortController~~(已完成,见 Agent 控制 Step 4 + W2 队列与插话)
+3. ~~工具调用分组与 Query Step UI~~(已完成,见 W5 聊天区 dsh 风改版)
+4. ~~把 `RagSearch` 接入会话引擎~~(已完成)
+5. ~~要素提取与索引更新~~(已完成,LLM 唯一路径)
 
-2. Query Guard / AbortController
-   避免重复提交，支持用户停止正在运行的 Agent。
+### 14.2+(2026-09-20 补丁)今日剩余待办
 
-3. 工具调用分组与 Query Step UI
-   让用户能看到每轮模型调用和工具批次。
-
-4. 把 `RagSearch` 接入会话引擎
-   不再只是测试按钮
-
-5. 要素提取与索引更新
-   让生成或修改章节后的结构化知识进入 `elements/` 与后续检索链路。
+- 近期章节上下文 `recentChapters` 接入 Loop(类型已定义,当前恒为空数组)
+- RAG 自动后台增量重建与错误降级
+- 生成结果结构化处理(计数刷新、自动打开变更文件、章节级元数据)
+- 要素模板与拆分规则稳定化(见 [Element 要素体系优化计划](../plans/Element要素体系优化计划.md))
 
 ---
 
