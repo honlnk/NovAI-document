@@ -9,7 +9,7 @@
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项（行为约束、整理指令）随方案重估暂缓 |
-| [生成链路多协议适配计划](生成链路多协议适配计划.md) | 进行中（W1 `773e1a5` / W2 `35d1d5e` / W3 `64b4a7f` / W4 `39407e3`，2026-09-24） | 参考 dsh llm 分层（中立词汇 + 协议适配器，pi-ai Node-only 不引入、线协议自写）：W1 协议层地基 + openai 迁移（reasoning_content 解析、三处调用点接通）已落地；W2 anthropic 适配器完工——system 顶层/tool_use·tool_result 映射/thinking 思考流/stop_reason 归一，400 测试全绿，真机经 DeepSeek anthropic 端点验证含工具完整往返，CORS 预检实测放行浏览器直连。四协议适配器全部落地（openai / anthropic / gemini / openai-responses，后两者无 key 以 wire mock 兜底待复核）。余 W5 思考流 UI（deepseek-reasoner 真机）、W6 收尾 |
+| [生成链路多协议适配计划](生成链路多协议适配计划.md) | 已完成（W1 `773e1a5` / W2 `35d1d5e` / W3 `64b4a7f` / W4 `39407e3` / W5 `6af57cd`，2026-09-24 结项） | 参考 dsh llm 分层（中立词汇 + 协议适配器，pi-ai Node-only 不引入、线协议自写）：`core/llm/protocol/` 落地，openai / anthropic / gemini / openai-responses 四协议全部接入生成链路（query / compaction / 要素提取三调用点）；reasoning 思考流「只收不发」+ ReasoningCollapse 折叠 UI（流式自动展开、正文开始自动收起）。真机验证 DeepSeek 双协议（openai reasoning_content / anthropic thinking，含工具完整往返）与 deepseek-reasoner 思考流 UI（browser-use 冒烟）；gemini / openai-responses 无 key，wire mock 兜底进未验证清单 |
 
 ## 待开始
 
