@@ -134,7 +134,7 @@ Claude Code 很强，但它的大量能力对 NovAI 来说是无关复杂度。
 - MCP 生态
 - LSP 集成
 - IDE Bridge
-- Web Search / Web Fetch
+- Web Search / Web Fetch（2026-09-24 由 [0006](0006-内置联网搜索与linkseek集成.md) 收回：联网搜索以 linkseek 原生内置工具形态引入，非照搬 Claude Code）
 - Task 系统
 - Team / Peer 通信
 - Cron / Remote Trigger
