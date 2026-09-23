@@ -9,6 +9,7 @@
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项（行为约束、整理指令）随方案重估暂缓 |
+| [内置联网搜索计划](内置联网搜索计划.md) | 进行中（W1 已完工 `07bba8f`，W2 待开始） | linkseek 原生集成（非 MCP）：linkseek 增 REST 公开端点 + 匿名绿灯（每身份 50 次/天、渲染加权计 2，clientId+IP 双闸，仅 NovAI 部署域名 Origin；抓取带质量门控自动渲染升级）；NovAI 增 WebSearch/WebFetch 内置工具 + 四档搜索来源配置（托管默认/自部署 linkseek/Exa/Perplexity）。修订 0002「不照搬 Web Search」条目，新决策 0006 随 W2 落档 |
 
 ## 待开始
 
