@@ -9,7 +9,6 @@
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项（行为约束、整理指令）随方案重估暂缓 |
-| [内置联网搜索计划](内置联网搜索计划.md) | 进行中（W1 `07bba8f` / W2 `8b1bbee` / W3 `69f2e75` 已完工，W4 联调收尾待开始） | linkseek 原生集成（非 MCP）：linkseek 增 REST 公开端点 + 匿名绿灯（每身份 50 次/天、渲染加权计 2，clientId+IP 双闸，仅 NovAI 部署域名 Origin；抓取带质量门控自动渲染升级）；NovAI 增 WebSearch/WebFetch 内置工具 + 四档搜索来源配置（托管默认/自部署 linkseek/Exa/Perplexity）。决策 0006 已落档并修订 0002 |
 
 ## 待开始
 
@@ -19,6 +18,7 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
+| [内置联网搜索计划](内置联网搜索计划.md) | 已完成（2026-09-24 结项，linkseek `07bba8f` / NovAI `8b1bbee`、`69f2e75`） | linkseek 原生集成（非 MCP）全链落地：linkseek REST 公开端点 `/v1/search`、`/v1/fetch` + 匿名绿灯（每身份 50 次/天、渲染加权计 2，clientId+IP 双闸 + 突发 10/分，仅授权站点 Origin；抓取带质量门控自动渲染升级）；NovAI WebSearch/WebFetch 内置工具（不可信数据前缀 + Sources 引用规范）+ 四档搜索来源配置（托管默认/自部署 linkseek/Exa/Perplexity，设置页「联网搜索」tab）+ 匿名 clientId 注入链。本地端到端实测：真实搜索/抓取、配额边界 48/50/51 与 429 文案透传、FreeUsage 落库核对全过。决策 0006 落档并修订 0002。遗留（见施工日志未验证清单）：托管 baseUrl 占位符待上线替换、生产域名绿灯真机验收、真实 LLM 会话中的工具调用与渲染待用户复核 |
 | [要素模块缺陷补全计划](要素模块缺陷补全计划.md) | 已完成（2026-09-23 结项，`ece0b12`/`08e18c5`） | 五类要素模板落地 core 资产（templates.ts，worldbuilding 按计划不出模板）；提取 prompt 注入模板分节、plot 强制按事件拆分、timeline 必带所属阶段与故事内时间、tags 由模型产出 + 兜底合并。门禁 358 测试全绿 + typecheck；真实 LLM 提取效果按预定降级为 mock 结构验证，待日常使用复核 |
 | [写回面板文件聚合与计数口径修正计划](写回面板文件聚合与计数口径修正计划.md) | 已完成（2026-09-22 结项，`e604360`/`f3d1811`/`1d3891f`；收尾 `e44e35a`、删除行数 `a82d1d3`） | 写回面板从操作流水改为按文件聚合（净状态徽章 + 片段 diff 列表 + 展开区限高 30 行），计数从净行数差修正为与 DiffLines 同源的 diffLines 真实增删（修 +0−0、+−2 负值、新建尾部换行多计），面板聚合行数与 GetFileChangeHistory 输出均按片段实时重算、历史账本旧口径数字自愈；created→deleted 呈现删除行而非丢弃；删除文件落账 linesRemoved 并进面板/历史工具计数。门禁 336 测试全绿 + typecheck + 生产构建；聚合形态与限高滚动已经用户目检确认 |
 | [长会话历史滚动性能计划](长会话历史滚动性能计划.md) | 已完成（2026-09-22 结项，`bb825e9`~`3083294`；修复 `cb39ae7`） | 借鉴 dsh 分层防线全部落地：①core 分页 API（`getSession` 尾部窗口 + `loadOlderMessages` 下标游标，无持久化迁移）；②store 窗口状态（100 条/页、prepend 防重入、run-finish 切片保持窗口）；③ChatPanel 滚动到顶自动翻页 + scrollHeight 锚定；④markdown 共享单例 + 块级渲染（流式只更新尾部块 DOM，消除每 token 整篇重渲）；⑤折叠组 `hidden="until-found"` 可搜索展开。门禁 326 测试全绿 + 双 typecheck + 生产构建；真机验收（翻页锚定/流式滚动/搜索展开）未执行，待用户复核 |
