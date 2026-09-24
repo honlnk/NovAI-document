@@ -303,3 +303,34 @@ DeepSeek 端点已验证回传两条路都通）。
 - 11 条不做清单全部遵守，无范围蔓延。
 - 「只收不发」原则正式退役（§7 替代表兑现）：openai 回传 `reasoning_content`、
   anthropic 回传 thinking block + signature；gemini thoughtSignature（旧有）不动。
+
+## 14. 结项后调整（2026-09-24）：移除 default 档，默认关闭（D7）
+
+用户拍板「默认档不值得保留」，并点名参考 dsh 的处理方式。调研结论（deepseek-harness 源码）：
+
+- dsh 档位枚举即 `off | low | high | max`，**没有「默认/供应商自决」档**；
+- 单供应商适配 `llm-deepseek`：未配置时兜底 **high**，且经 `resolveCallWithInfo` 的
+  `requested ?? defaultEffort` 物化到线上（`thinking:enabled + reasoning_effort:high`）；
+- 多供应商适配 `llm-pi-ai`：off 与未配置都翻译为**省略** reasoning 选项（provider 自决），
+  picker 仅在适配器给不出 defaultEffort 时才提供 "Provider default" 选项；
+- 辅助用途（session-title）硬编码 disabled——与本项目 D6 辅助请求固定 off 一致。
+
+**D7 决策**：NovAI 移除 `default` 档（`ReasoningEffort` 收为四档），**未配置按 `off` 解析（默认关闭）**。
+不照搬 dsh 单供应商适配的「兜底 high」，理由：dsh 的 high 兜底建立在逐模型能力表之上，
+NovAI 无能力表——absent→high 会让所有未配置后端突然收到 `reasoning_effort` / `thinkingBudget`
+（OpenAI 官方对非思考模型的容忍度、Gemini Pro 对 budget 0 的接受度均为未验证项）；
+absent→off 在四协议各自落到已验证/已定稿的关闭形态，且「默认关闭」为用户明示的取向。
+
+实现（结项后追加，单批完成）：
+
+- `types/ai.ts`：四档 union；`AgentReasoningEffort` 别名删除（与 `ReasoningEffort` 合一）；
+- 四适配器 `resolveThinkingWire` / `resolveThinkingBudget`：`input.reasoningEffort ?? 'off'`——
+  缺省即关闭。wire 后果：方言 `thinking:disabled`（此前不传=DeepSeek 默认思考，**行为变化**）、
+  anthropic `thinking:disabled`（与缺省语义等价，显式化）、gemini `thinkingBudget:0`
+  （thinkingConfig 恒下发）、responses / 非方言 openai 不传（与原先缺省 wire 逐字节一致）；
+- `query.ts` 条件下发去掉 `!== 'default'`；normalize 对已废弃的 `'default'` 字符串按非法值
+  回退未配置（落回 off）；UI 档位表四档、缺省显示「关闭」、store 写回直写档位。
+
+已知尾巴（接 §12 未验证清单）：Gemini 2.5 Pro 按官方文档不可关闭思考（budget 下限 128），
+off 档（含缺省）发 `thinkingBudget:0` 对 Pro 可能 400——与 D2 off 列同源的既有风险，
+gemini 真机验证后若确认，off 列改省略或钳 128（一行改动，不动 UI）。
