@@ -1,6 +1,6 @@
 # 思考强度选择器与 DeepSeek 思考回传修复计划
 
-- 状态：进行中（W1/W2/W3 已落地，W4 待施工）
+- 状态：已完成（2026-09-24 结项；W1 `cb4a76d` / W2 `a415e82` / W3 `6f05ed2`）
 - 创建：2026-09-24
 - 前置：生成链路多协议适配计划（已完成，W5 落了思考流 UI 与 reasoning 落盘）
 - 参考实现：`/Users/honlnk/project/deepseek-harness`（dsh，`packages/llm/llm-deepseek`）
@@ -262,3 +262,44 @@ DeepSeek 端点已验证回传两条路都通）。
   预置 DeepSeek 配置）：选择器渲染「默认」档 → 菜单五档可见（方言判定生效）→ 选「最高」
   按钮/落盘 `reasoningEffort: "max"` → 切回「默认」字段从 novel.config.json 消失（零迁移语义）；
   截图视觉确认与权限选择器并排协调、无布局异常。
+
+### 2026-09-24 W4 真机档位验证 + 计划复审 + 结项
+
+- 真机验证（临时测试文件走 streamAgentCompletion 真实链路，用后即删，4 项全过）：
+  - openai 端点：off 档 0 思考；low < max 思考长度单调可感（档位真实生效）；
+  - openai 端点 max 档 + 工具循环两轮 200，正文含工具结果（回传 × 档位组合）；
+  - anthropic 端点：off 档无思考；low 档思考开且 `thinkingSignature` 落盘非空；
+  - anthropic 端点 high 档 + 工具循环：回传 thinking block + signature 后 200 拿到正文
+    （含 max_tokens 抬高路径 budget 8192 → 12288 的真机确认）。
+- **计划复审**（用户点名的结项门禁，逐条核对本文档声明与实现后真实表现）：
+  - §2.1 五条事实（默认思考开 / disabled 有效 / low·max 生效 / 不回传 400 / 流式同罪）
+    → W1 修复前实测 + W4 修复后对照，全部吻合；
+  - §2.2 五条事实（默认思考开带 signature / disabled 有效 / budget 接受 / 不回传宽容 /
+    篡改签名不校验）→ 立项实测 + W4 复测吻合；实现选择回传真 thinking block（不依赖宽容行为，
+    真 Anthropic 语义下也成立）；
+  - D2 映射表逐格 → 四协议 wire 单测全覆盖 + 真机抽验（openai off/low/max、anthropic off/low/high）；
+  - D5 signature 三层落盘 → 单测 + W4 anthropic 真机全链（流解析 → 响应 → 回传 200）；
+  - D6 辅助请求 off → query.test 断言（压缩 effort='off'、真实请求档位跟随 config）；
+  - §6 零迁移 → 冒烟实证（default 档字段从 novel.config.json 消失、旧配置行为不变）。
+  - 复审结论：**计划与实现零偏差**；本轮回顾性纠错（DeepSeek 思考模型旧认知）发生在立项前，
+    全部真机事实已固化进 §2，施工期间无新发现的计划级错误。
+
+## 12. 未验证清单（定稿）
+
+| 项 | 原因 | 兜底 |
+|---|---|---|
+| OpenAI 官方后端：回传 `reasoning_content` 的容忍度、off 档隐藏的必要性 | 无 key | 「收到才回传」逻辑上不会触发（官方端点不返回该字段）；off 隐藏依官方文档语义 |
+| 真 Anthropic 端点：thinking 验签回传 | 无 key | signature 已落盘并随 thinking block 回传；DeepSeek anthropic 端点全链验证回传可行 |
+| gemini 真机：thinkingBudget 映射 | 无 key | wire 单测逐档断言 |
+| openai-responses 真机：reasoning.effort 映射 | 无 key | wire 单测逐档断言（含 max 降级） |
+| anthropic budget 拍定值的约束曲线（2048/8192/16384 是否恰好对应预期强度） | 简单问题测不出差异 | low/high 真机跑通未截断；调表不动 UI，实测后可改 D2 常量 |
+| 生产浏览器会话的档位 UI 真人体验 | 冒烟用 FS shim 无头项目 | 冒烟已覆盖交互/落盘/视觉三面；真实项目路径待日常使用复核 |
+
+## 13. 结项说明
+
+- 四波全部按计划落地，门禁全过：W1 `cb4a76d`（真机 400 修复）、W2 `a415e82`（428 测试）、
+  W3 `6f05ed2`（433 测试 + 冒烟四项）、W4（真机四项 + 计划复审零偏差）。
+- 零迁移条款兑现：`config.llm.reasoningEffort` 可选字段，旧项目行为不变；normalize 对非法值回退未配置。
+- 11 条不做清单全部遵守，无范围蔓延。
+- 「只收不发」原则正式退役（§7 替代表兑现）：openai 回传 `reasoning_content`、
+  anthropic 回传 thinking block + signature；gemini thoughtSignature（旧有）不动。
