@@ -9,6 +9,7 @@
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项（行为约束、整理指令）随方案重估暂缓 |
+| [思考强度选择器与 DeepSeek 思考回传修复计划](思考强度选择器与DeepSeek思考回传计划.md) | 进行中（W1 `cb4a76d`） | 修复真机缺陷（openai 协议 + DeepSeek 思考模型 + 工具轮回传缺失 `reasoning_content` 即 400，「只收不发」策略退役；W1 已落地并真机验证）+ 输入框思考强度选择器（default/off/low/high/max 五档照 PermissionPresetPicker 形态，四协议 wire 映射表，anthropic 补 signature 落盘链路）。事实基础为 2026-09-24 双端点真机实测（含 anthropic 端点对回传宽容不验签的发现） |
 | [生成链路多协议适配计划](生成链路多协议适配计划.md) | 已完成（W1 `773e1a5` / W2 `35d1d5e` / W3 `64b4a7f` / W4 `39407e3` / W5 `6af57cd`，2026-09-24 结项） | 参考 dsh llm 分层（中立词汇 + 协议适配器，pi-ai Node-only 不引入、线协议自写）：`core/llm/protocol/` 落地，openai / anthropic / gemini / openai-responses 四协议全部接入生成链路（query / compaction / 要素提取三调用点）；reasoning 思考流「只收不发」+ ReasoningCollapse 折叠 UI（流式自动展开、正文开始自动收起）。真机验证 DeepSeek 双协议（openai reasoning_content / anthropic thinking，含工具完整往返）与 deepseek-reasoner 思考流 UI（browser-use 冒烟）；gemini / openai-responses 无 key，wire mock 兜底进未验证清单 |
 
 ## 待开始
