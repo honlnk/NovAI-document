@@ -7,8 +7,9 @@
 ## 进行中
 
 | 文档 | 状态 | 说明 |
-| :--- | :--- | :--- |
-| [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项（行为约束、整理指令）随方案重估暂缓 |
+| :-- | :-- | :-- |
+| [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项由《要素园丁子代理设计》承接 |
+| [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项由《要素园丁子代理设计》承接 |
 | [生成链路多协议适配计划](生成链路多协议适配计划.md) | 已完成（W1 `773e1a5` / W2 `35d1d5e` / W3 `64b4a7f` / W4 `39407e3` / W5 `6af57cd`，2026-09-24 结项） | 参考 dsh llm 分层（中立词汇 + 协议适配器，pi-ai Node-only 不引入、线协议自写）：`core/llm/protocol/` 落地，openai / anthropic / gemini / openai-responses 四协议全部接入生成链路（query / compaction / 要素提取三调用点）；reasoning 思考流「只收不发」+ ReasoningCollapse 折叠 UI（流式自动展开、正文开始自动收起）。真机验证 DeepSeek 双协议（openai reasoning_content / anthropic thinking，含工具完整往返）与 deepseek-reasoner 思考流 UI（browser-use 冒烟）；gemini / openai-responses 无 key，wire mock 兜底进未验证清单 |
 
 ## 待开始
@@ -19,6 +20,7 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
+| [要素园丁 Phase 1 施工计划](要素园丁Phase1施工计划.md) | 已完成（2026-09-25 结项，`3ac5dd2`/`05c1ea0`/`2311afa`） | 依据《要素园丁子代理设计》v3 落地 Phase 1 最小闭环：`prompts/ELEMENT.md` Schema 层（默认六节规范，createProject 初始化 / repairProject 缺失补齐不覆盖 / PromptList 第四组「要素规范」）；园丁子代理运行壳（persona + 要素规范注入 + 六工具白名单 + `elements/` 路径闸，独立 ModelView 复用同一 `query()` 零 Loop 改造，深度固定 1 层）；`DelegateToGardener` 委派工具挂主 Agent 工具面（内层写工具复用同一确认链、档位继承，确认卡与写回面板带「园丁」归属徽标）；`/整理要素` 斜杠命令 + 聊天区嵌套「🌿 园丁整理」任务组。门禁 460 测试 + core/app 双 typecheck + 生产构建；真实 LLM 全流程按计划降级为集成测试兜底，待用户真机复核（清单见施工日志阶段 4） |
 | [思考强度选择器与 DeepSeek 思考回传修复计划](思考强度选择器与DeepSeek思考回传计划.md) | 已完成（W1 `cb4a76d` / W2 `a415e82` / W3 `6f05ed2`，2026-09-24 结项） | 修复真机缺陷（openai 协议 DeepSeek 思考模型工具轮回传缺失 `reasoning_content` 即 400，「只收不发」退役为按协议回传：openai 回传 reasoning_content、anthropic 回传 thinking block+signature 且 signature 三层落盘）；输入框思考强度选择器（default/off/low/high/max 五档照 PermissionPresetPicker 形态，DeepSeek 方言判定控制 off 档可见性，四协议 wire 映射表逐格单测；压缩/要素提取固定关思考）。真机验证：双端点档位生效（off 零思考、low<max 单调）、双端点工具循环两轮 200、anthropic signature 全链回传；browser-use 冒烟（五档渲染/落盘 max/切回默认字段消失/视觉协调）；计划复审零偏差。OpenAI 官方 / 真 Anthropic / gemini / responses 无 key 未验证见计划 §12 |
 | [内置联网搜索计划](内置联网搜索计划.md) | 已完成（2026-09-24 结项，linkseek `07bba8f` / NovAI `8b1bbee`、`69f2e75`） | linkseek 原生集成（非 MCP）全链落地：linkseek REST 公开端点 `/v1/search`、`/v1/fetch` + 匿名绿灯（每身份 50 次/天、渲染加权计 2，clientId+IP 双闸 + 突发 10/分，仅授权站点 Origin；抓取带质量门控自动渲染升级）；NovAI WebSearch/WebFetch 内置工具（不可信数据前缀 + Sources 引用规范）+ 四档搜索来源配置（托管默认/自部署 linkseek/Exa/Perplexity，设置页「联网搜索」tab）+ 匿名 clientId 注入链。本地端到端实测：真实搜索/抓取、配额边界 48/50/51 与 429 文案透传、FreeUsage 落库核对全过。决策 0006 落档并修订 0002。遗留（见施工日志未验证清单）：托管 baseUrl 占位符待上线替换、生产域名绿灯真机验收、真实 LLM 会话中的工具调用与渲染待用户复核 |
 | [要素模块缺陷补全计划](要素模块缺陷补全计划.md) | 已完成（2026-09-23 结项，`ece0b12`/`08e18c5`） | 五类要素模板落地 core 资产（templates.ts，worldbuilding 按计划不出模板）；提取 prompt 注入模板分节、plot 强制按事件拆分、timeline 必带所属阶段与故事内时间、tags 由模型产出 + 兜底合并。门禁 358 测试全绿 + typecheck；真实 LLM 提取效果按预定降级为 mock 结构验证，待日常使用复核 |
