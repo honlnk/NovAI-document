@@ -1,6 +1,6 @@
 # 思考强度选择器与 DeepSeek 思考回传修复计划
 
-- 状态：进行中（W1 已落地，W2-W4 待施工）
+- 状态：进行中（W1/W2 已落地，W3-W4 待施工）
 - 创建：2026-09-24
 - 前置：生成链路多协议适配计划（已完成，W5 落了思考流 UI 与 reasoning 落盘）
 - 参考实现：`/Users/honlnk/project/deepseek-harness`（dsh，`packages/llm/llm-deepseek`）
@@ -227,3 +227,19 @@ DeepSeek 端点已验证回传两条路都通）。
 - 验收：421 测试全绿（49 文件）+ typecheck 干净；真机验证（临时测试文件，用后即删）：
   deepseek-flash 思考模型两轮工具循环，第一轮思考 + 工具调用，第二轮回传后 200 并拿到含工具结果的正文
   （修复前该组合第二轮必 400，§2.1 已实测）。
+
+### 2026-09-24 W2 档位参数链路（`a415e82`）
+
+- 类型：`ReasoningEffort` 五档（types/ai.ts）+ `config.llm.reasoningEffort` 可选（零迁移）+
+  `AgentLlmInput.reasoningEffort` 四档（default 缺省不传）。
+- 四适配器按 D2 映射表落地：openai-chat 方言分支（`isDeepSeekDialect` baseUrl 判定，放 ai/shared）；
+  anthropic budget 拍定值 + budget 触顶时抬高 max_tokens（真 Anthropic 要求严格大于预算）；
+  gemini thinkingBudget；responses effort（max 降级 high）。
+- anthropic signature 三层落盘：`signature_delta` 流解析 → AgentAssistantMessage / AgentAssistantResponse /
+  AssistantTextMessage / ChatMessageView 同名透传；续聊无需重建逻辑（ModelView 的 AgentMessage[]
+  本就随会话落盘，thinkingSignature 自动跟随）。
+- 调用点：query 读 config 下发；compaction 与 streamChatCompletion（要素提取）固定 'off'。
+- 偏差记录：无（与计划一致）。gemini 测试断言小坑：default 档下 maxTokens 也未传时整个
+  generationConfig 不出现，断言对象应为 body 而非 body.generationConfig。
+- 验收：428 测试全绿（+7：D2 映射表逐格 ×4 协议、thinking block 回传、signature 解析、
+  档位下发/压缩 off）+ typecheck 干净。
