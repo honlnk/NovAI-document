@@ -1,6 +1,6 @@
 # 思考强度选择器与 DeepSeek 思考回传修复计划
 
-- 状态：进行中（W1/W2 已落地，W3-W4 待施工）
+- 状态：进行中（W1/W2/W3 已落地，W4 待施工）
 - 创建：2026-09-24
 - 前置：生成链路多协议适配计划（已完成，W5 落了思考流 UI 与 reasoning 落盘）
 - 参考实现：`/Users/honlnk/project/deepseek-harness`（dsh，`packages/llm/llm-deepseek`）
@@ -243,3 +243,22 @@ DeepSeek 端点已验证回传两条路都通）。
   generationConfig 不出现，断言对象应为 body 而非 body.generationConfig。
 - 验收：428 测试全绿（+7：D2 映射表逐格 ×4 协议、thinking block 回传、signature 解析、
   档位下发/压缩 off）+ typecheck 干净。
+
+### 2026-09-24 W3 UI 选择器（`6f05ed2`）
+
+- `constants/reasoning-efforts.ts`：五档表 + `reasoningEffortOptions` 协议×方言过滤
+  （openai 非 DeepSeek 方言与 openai-responses 隐藏 off 档）；`ReasoningEffortPicker.vue`
+  照 PermissionPresetPicker 形态；ChatPanel 工具行与权限选择器并排；
+  store `changeReasoningEffort` 走 updateConfig（default 档写 undefined = 字段消失）。
+- 配置面补齐：ProjectConfigView.llm / project-fs normalize 增 reasoningEffort 可选字段
+  （非法值回退未配置）；`isDeepSeekDialect` 经 services/types re-export 进入 app 合法导入面
+  （core package exports 只开 services/* 与 types/*）。
+- 偏差记录：无计划级偏差。两个环境坑（W5 已知问题的变体，均已在冒烟中解决）：
+  ① 该浏览器 backend 的 evaluate 把字符串按表达式求值（外层括号包裹），
+  代码末尾带 `;` 即 SyntaxError「Unexpected token ';'」——注入脚本一律以表达式结尾；
+  ② FS shim 的 handle 被 app 存 IndexedDB（recent projects），对象字面量的自有函数属性
+  不可 structured-clone——方法必须挂 prototype（本次用 function+prototype 形态）。
+- 验收：433 测试全绿（+5 档位表单测）+ typecheck 干净；browser-use 冒烟（FS shim 无头项目，
+  预置 DeepSeek 配置）：选择器渲染「默认」档 → 菜单五档可见（方言判定生效）→ 选「最高」
+  按钮/落盘 `reasoningEffort: "max"` → 切回「默认」字段从 novel.config.json 消失（零迁移语义）；
+  截图视觉确认与权限选择器并排协调、无布局异常。
