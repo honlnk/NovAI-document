@@ -16,7 +16,7 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
-| [linkseek 直连与 CORS 修复计划](linkseek直连与CORS修复计划.md) | 进行中（W1 `9bebd03` 完工，2026-09-29；W2/W3 待推进） | 修复「自部署 linkseek」档设计缺陷：`/v1` CORS 白名单把带 Key 的浏览器流量一起拦掉（实证 2026-09-29，Key 与端点本身无问题）。linkseek 侧 CORS 改为一律回显 Origin、匿名防线收拢 `resolveCaller`、Key 独立突发限流（默认 30/分）；NovAI 侧档位改名「linkseek 直连（API Key）」（枚举值不变零迁移）、预填官方托管地址、双仓引导文案同步。产品重定位：该档真实语义是 BYOK 直连任意实例（含官方托管），Origin 白名单只是作者生产实例的匿名绿灯开关。W1 已落地：改名/预填/文案 + 460 测试全绿 |
+| [linkseek 直连与 CORS 修复计划](linkseek直连与CORS修复计划.md) | 进行中（W1 NovAI `9bebd03` / W2 linkseek `660edd6`，2026-09-29；W3 待生产部署后验收） | 修复「自部署 linkseek」档设计缺陷：`/v1` CORS 白名单把带 Key 的浏览器流量一起拦掉（实证 2026-09-29，Key 与端点本身无问题）。linkseek 侧 CORS 改为一律回显 Origin、匿名防线收拢 `resolveCaller`、Key 独立突发限流（默认 30/分）；NovAI 侧档位改名「linkseek 直连（API Key）」（枚举值不变零迁移）、预填官方托管地址、双仓引导文案同步。产品重定位：该档真实语义是 BYOK 直连任意实例（含官方托管），Origin 白名单只是作者生产实例的匿名绿灯开关。W1/W2 已落地并本地实测（原缺陷场景 Key+白名单外 Origin 已 200）；W3 生产部署与真机验收待用户执行 |
 
 ## 已完成
 

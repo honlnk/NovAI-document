@@ -133,3 +133,15 @@ W2 curl 验收清单（本地实例，白名单临时含 `http://localhost:5173`
 
 1. **browser-use 冒烟未执行**（计划 W1 验收含设置页四档切换冒烟）——本轮为纯文案/预填逻辑改动且逻辑已有单测覆盖，渲染冒烟合并到 W3 发布前与直连真机验收一起做，避免重复占用验证轮次。属验收时机挪移，非降级。
 
+### 2026-09-29 W2 linkseek CORS 修复完工（linkseek `660edd6`）
+
+**验收结论**：`pnpm typecheck` 干净；curl 验收在本地 dev 实例实测（`tsx watch` 热加载新代码，localhost:7300）：① 预检矩阵——随机 Origin（白名单外）预检 204 **且** `access-control-allow-origin` 回显该 Origin、`allow-headers` 含 `Authorization, X-NovAI-Client-Id`；② Key 直连——带 Key 无 Origin 200（既有行为保持）、带 Key + 白名单外 Origin 200（**原缺陷场景修复**）；③ 匿名不回归——无 Origin 无 Key 401 `ORIGIN_REQUIRED`、白名单外 Origin 匿名 403 `ORIGIN_FORBIDDEN`（错误体现在响应体，新文案）；④ Key burst——滑动窗口 60s 内 30 次（28+此前验收耗 2）全部 200、第 31 起全部 429 `RATE_LIMITED`（`请求过于频繁，请稍后再试。`）；⑤ `/v1/fetch` Key + 白名单外 Origin + `render: 'auto'` 200、`renderedBy: 'http'`、正文 225 字符（抓取链路无回归）。改动面：CORS 中间件重写（一律回显）、`resolveCaller` key 分支补 burst（`key:<keyId>`，`PUBLIC_API_KEY_BURST_PER_MINUTE` 默认 30）、绿灯超限/总闸/ORIGIN_FORBIDDEN 三处文案对齐新档名、config + 两份 env example 注释与新增项、`public/docs.html` 鉴权与限流说明（含 `/v1` 版本要求 ≥ `07bba8f`）。
+
+**偏差记录**：
+
+1. **白名单内匿名放行 + 配额落库未在本地复测**——本地实例 `PUBLIC_API_ALLOWED_ORIGINS` 为空（绿灯整体关闭）且不重启用户在跑的 watch 进程；该路径代码未动，留 W3 生产验收。
+2. **Key 流量 UsageLog 落账 / FreeUsage 不计的库层核对未做**——记账逻辑未改动，以响应行为回归兜底，留 W3 生产核对。
+3. **`.env.production.example` 与 CI/CD 批次同文件并行**——该文件有 CI/CD 未提交改动（`APP_IMAGE_TAG` 块），按 hunk 精确暂存只提交公开 API 段，CI/CD 块保留在工作区由其批次自行提交。
+4. **`ORIGIN_FORBIDDEN` 文案顺带对齐**——计划决策 4 未列此处，但同为"自部署"旧措辞，随批更新（'当前来源不在免费额度白名单内。可选择「linkseek 直连」并填写 API Key 后使用。'）。
+
+
