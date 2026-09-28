@@ -125,6 +125,12 @@ W2 curl 验收清单（本地实例，白名单临时含 `http://localhost:5173`
 
 ## 施工日志
 
+### 2026-09-29 W3 收尾：NovAI `release-v1.3.0` 发布点落 tag（结项）
+
+用户在 test-novel（dev server）完成浏览器侧直连真机验证：配置落盘确认预填生效（`provider: linkseek-selfhost` + 官方托管地址自动预填 + 新建 Key），localhost:5173 Origin 不再被拦，Key 实测返回搜索结果。发布点门禁全量复跑：460 测试全绿 + 双 typecheck + 生产构建通过，`release-v1.3.0` 打在 dev 顶端 `6b682d2`（纯完成单元，无 WIP 夹带——遵 v1.2.1 教训）。v1.3.0 相对 v1.2.0 还含：生成链路多协议适配（四协议 + 思考流 UI）、思考强度选择器与 DeepSeek 思考回传修复、API 协议下拉、要素园丁 Phase 1。push 与 GitHub Pages 部署由用户执行。
+
+**遗留未验证（不阻塞结项）**：管理台总闸抽检（禁用内置 NovAI Key → 匿名 403 新文案 → 恢复）未执行——该路径逻辑未动仅文案更新，风险极低，用户可随时抽检。结项时生产绿灯回归已验（匿名官方站 Origin 200）、生产站点 novai.honlnk.com 直连全流程待发版部署后随用随验。
+
 ### 2026-09-29 W3 生产 curl 验收通过（CI/CD 链路已带出本改动）
 
 CI/CD 发布链路验证成功（dev → PR #2/#3 → main，tag v0.2.0 / v0.2.1 自动部署）。此前"验证版不含本改动"的预期未成立——`660edd6` 落在 dev 上早于发布切点，随 PR 合并一并带出。生产实测（linkseek.honlnk.com）：① 随机 Origin 预检 204 + `access-control-allow-origin` 回显 + `allow-headers` 含 `Authorization, X-NovAI-Client-Id`；② Key + 白名单外 Origin 真实搜索 200（**原缺陷场景生产闭环**）；③ 匿名白名单外 Origin 403 `ORIGIN_FORBIDDEN` 新文案；④ 匿名官方站 Origin（绿灯）200——W2 偏差 1「白名单内匿名放行未复测」顺带闭环（消耗测试配额 1 次，identity `cid:w3-verify-client-0001`，明日自动重置）。
