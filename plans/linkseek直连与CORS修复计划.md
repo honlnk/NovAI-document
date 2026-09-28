@@ -125,6 +125,10 @@ W2 curl 验收清单（本地实例，白名单临时含 `http://localhost:5173`
 
 ## 施工日志
 
+### 2026-09-29 v1.3.0 正式发布上线（全流程闭环）
+
+用户授权执行发版：docs 子模块推送（`fbc5f55..187d130`）→ NovAI `honlnk/dev`（`add5ea4..4d473ee`）+ `release-v1.3.0` tag 推送 → tag 触发 `deploy-pages.yml`（run `36492837330`）构建部署 GitHub Pages 成功 → 线上验证：novai.honlnk.com 构建 bundle（`index-DqeZpzSU.js`）含「linkseek 直连」新文案。内置搜索功能全链路交付完毕：linkseek 生产（CI/CD v0.2.0/v0.2.1 带出 `660edd6`）+ NovAI 生产（v1.3.0）双端在线。
+
 ### 2026-09-29 W3 收尾：NovAI `release-v1.3.0` 发布点落 tag（结项）
 
 用户在 test-novel（dev server）完成浏览器侧直连真机验证：配置落盘确认预填生效（`provider: linkseek-selfhost` + 官方托管地址自动预填 + 新建 Key），localhost:5173 Origin 不再被拦，Key 实测返回搜索结果。发布点门禁全量复跑：460 测试全绿 + 双 typecheck + 生产构建通过，`release-v1.3.0` 打在 dev 顶端 `6b682d2`（纯完成单元，无 WIP 夹带——遵 v1.2.1 教训）。v1.3.0 相对 v1.2.0 还含：生成链路多协议适配（四协议 + 思考流 UI）、思考强度选择器与 DeepSeek 思考回传修复、API 协议下拉、要素园丁 Phase 1。push 与 GitHub Pages 部署由用户执行。

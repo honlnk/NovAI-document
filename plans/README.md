@@ -16,7 +16,7 @@
 
 | 文档 | 状态 | 说明 |
 | :--- | :--- | :--- |
-| [linkseek 直连与 CORS 修复计划](linkseek直连与CORS修复计划.md) | 已完成（W1 NovAI `9bebd03` / W2 linkseek `660edd6`，2026-09-29 结项；linkseek 侧随 CI/CD v0.2.0/v0.2.1 上线，NovAI 侧随 `release-v1.3.0` 发布点落 tag） | 修复「自部署 linkseek」档设计缺陷：`/v1` CORS 白名单把带 Key 的浏览器流量一起拦掉（实证 2026-09-29，Key 与端点本身无问题）。linkseek 侧 CORS 一律回显 Origin、匿名防线收拢 `resolveCaller`、Key 独立突发限流（默认 30/分，不设日配额）；NovAI 侧档位改名「linkseek 直连（API Key）」（枚举值不变零迁移）、预填官方托管地址、双仓引导文案同步。产品重定位：该档真实语义是 BYOK 直连任意实例（含官方托管），Origin 白名单只是作者生产实例的匿名绿灯开关。本地 curl 九项 + 生产四项（原缺陷场景 Key+白名单外 Origin 200）+ test-novel 浏览器真机全过；遗留：管理台总闸抽检未做（不阻塞） |
+| [linkseek 直连与 CORS 修复计划](linkseek直连与CORS修复计划.md) | 已完成（W1 NovAI `9bebd03` / W2 linkseek `660edd6`，2026-09-29 结项；linkseek 侧随 CI/CD v0.2.0/v0.2.1 上线，NovAI 侧 `release-v1.3.0` 已正式发布（tag 推送触发 Pages 工作流，线上 bundle 验证含新文案）） | 修复「自部署 linkseek」档设计缺陷：`/v1` CORS 白名单把带 Key 的浏览器流量一起拦掉（实证 2026-09-29，Key 与端点本身无问题）。linkseek 侧 CORS 一律回显 Origin、匿名防线收拢 `resolveCaller`、Key 独立突发限流（默认 30/分，不设日配额）；NovAI 侧档位改名「linkseek 直连（API Key）」（枚举值不变零迁移）、预填官方托管地址、双仓引导文案同步。产品重定位：该档真实语义是 BYOK 直连任意实例（含官方托管），Origin 白名单只是作者生产实例的匿名绿灯开关。本地 curl 九项 + 生产四项（原缺陷场景 Key+白名单外 Origin 200）+ test-novel 浏览器真机全过；遗留：管理台总闸抽检未做（不阻塞） |
 
 ## 已完成
 
