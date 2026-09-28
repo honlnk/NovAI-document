@@ -125,6 +125,12 @@ W2 curl 验收清单（本地实例，白名单临时含 `http://localhost:5173`
 
 ## 施工日志
 
+### 2026-09-29 W3 生产 curl 验收通过（CI/CD 链路已带出本改动）
+
+CI/CD 发布链路验证成功（dev → PR #2/#3 → main，tag v0.2.0 / v0.2.1 自动部署）。此前"验证版不含本改动"的预期未成立——`660edd6` 落在 dev 上早于发布切点，随 PR 合并一并带出。生产实测（linkseek.honlnk.com）：① 随机 Origin 预检 204 + `access-control-allow-origin` 回显 + `allow-headers` 含 `Authorization, X-NovAI-Client-Id`；② Key + 白名单外 Origin 真实搜索 200（**原缺陷场景生产闭环**）；③ 匿名白名单外 Origin 403 `ORIGIN_FORBIDDEN` 新文案；④ 匿名官方站 Origin（绿灯）200——W2 偏差 1「白名单内匿名放行未复测」顺带闭环（消耗测试配额 1 次，identity `cid:w3-verify-client-0001`，明日自动重置）。
+
+**剩余（浏览器/管理台侧，待用户执行）**：localhost:5173 dev NovAI 直连 + Key 测试连接；novai.honlnk.com 站内直连全流程 + Agent 真实 WebSearch/WebFetch 会话；管理台禁用内置 NovAI Key 抽检总闸新文案后恢复；W1 顺延的设置页 browser-use 渲染冒烟。
+
 ### 2026-09-29 W3 暂缓（等 CI/CD 发布链路）
 
 linkseek 仓 CI/CD 批次开发完毕、正在测试验证；**本次验证版不包含本计划改动**。W3（生产部署 + 跨仓验收）挂起，触发条件：CI/CD 发布链路验证成功并发布一版之后，再用该链路（或手动）部署 `660edd6` 及 NovAI 新版本，按计划 W3 清单验收。W1/W2 已提交本地未 push，无在途风险。
