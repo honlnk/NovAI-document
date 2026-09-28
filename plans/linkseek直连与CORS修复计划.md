@@ -125,6 +125,10 @@ W2 curl 验收清单（本地实例，白名单临时含 `http://localhost:5173`
 
 ## 施工日志
 
+### 2026-09-29 W3 暂缓（等 CI/CD 发布链路）
+
+linkseek 仓 CI/CD 批次开发完毕、正在测试验证；**本次验证版不包含本计划改动**。W3（生产部署 + 跨仓验收）挂起，触发条件：CI/CD 发布链路验证成功并发布一版之后，再用该链路（或手动）部署 `660edd6` 及 NovAI 新版本，按计划 W3 清单验收。W1/W2 已提交本地未 push，无在途风险。
+
 ### 2026-09-29 W1 NovAI 直连档改名完工（`9bebd03`）
 
 **验收结论**：`pnpm test` 460 项全绿（52 文件）+ `pnpm typecheck` 干净。`SEARCH_PROVIDER_OPTIONS` linkseek-selfhost 项改 label「linkseek 直连（API Key）」+ 新 description + `baseUrlPrefill: 'https://linkseek.honlnk.com'`；`web-fetch.ts` 无抓取引导文案、`search-provider.ts` 档位注释与缺地址报错、`web-search.test.ts`/`search-provider.test.ts` 的 429 文案 mock 全部对齐新措辞；`applyProviderSwitch` 单测补直连档预填断言（空值 → 官方地址、自定义地址保留）、`SearchSettingsPanel.vue` 注释同步。provider 枚举与 SearchConfig 结构未动，存量配置零迁移。
