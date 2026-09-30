@@ -206,7 +206,7 @@ export async function streamFimCompletion(
 1. **textarea 不做文字透明处理**：改为 textarea 正常渲染已输入文字（深色），覆盖层只渲染灰色建议、其中已输入部分用 `invisible` 撑布局定位。比原方案（textarea 透明 + 覆盖层渲染全部文字）少一层文字复制，规避了选区与滚动同步问题。
 2. **计划外顺带**：输入框区域改造为卡片式样式（`.chat-input-card` 白底大圆角描边 + focus 反馈，仿 gpt-image-studio）；共享样式类按计划建议抽取为 `.chat-input-base`。
 
-真实使用验证（2026-09-29，用户）：FIM 流式 delta 字段兼容性（代理网关改写场景）与延迟体验复核通过，未发现问题。
+真实使用验证（2026-10-01，用户）：FIM 流式 delta 字段兼容性（代理网关改写场景）与延迟体验复核通过，未发现问题。
 
 ## 风险与权衡
 
