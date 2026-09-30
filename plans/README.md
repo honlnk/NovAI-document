@@ -12,13 +12,15 @@
 
 ## 待开始
 
-暂无。
+| 文档 | 状态 | 说明 |
+| :-- | :-- | :-- |
+| [上下文分层注入重构计划](上下文分层注入重构计划.md) | 待用户审核 | 主 Agent 上下文组装 dsh 化重构：system 消息改静态（身份+逐工具纪律+交付原则），system.md/NovAI.md 降为 user-role 工作区提醒（含「不覆盖用户直接指令」层级声明），新增运行时快照（场景+权限档位+写边界），user 消息删「直接调用文件工具」尾巴。三决策已确认、提示词文案草案内嵌计划待逐字审核；不动 compaction/园丁/提取器，不做动词白名单 |
 
 ## 已完成
 
 | 文档 | 状态 | 说明 |
 | :-- | :-- | :-- |
-| [要素园丁 Phase 2 施工计划](要素园丁Phase2施工计划.md) | 已完成（2026-10-01 三波同日施工完毕，W1 `cfaa0f4` / W2 `ac1f0a6` / W3 `2070c2d`；真机验收项见计划文末未验证清单，留用户日常复核） | 三件套：①园丁独立配置——`runGardener` 合成快照注入覆盖（收紧与放宽双向生效，confirm 闭包方案已否决）；`gardener?` 可选块零迁移（无块=按次动态继承主 Agent 当前配置，运行中定格）；档位裁三档（review/material/full）；思考档随覆盖块；设置页「园丁」tab。②快捷入口——工具栏一键按钮 + 全局 Ctrl/Cmd+Shift+G 与 `/整理要素` 三入口共用 sendMessage 链路，运行中自动排队，零 core 改动。③主 Agent 主动委派——`DelegateToGardener` 描述扩写触发信号/频率节制/先建议后委派（D6），工作原则加收尾回顾软约束（D7），硬节流闸不做视真机另批。各波门禁 487/488 测试 + 双 typecheck + 生产构建。未验证：设置页与快捷入口真机冒烟（dev server 未运行）、W3 主动建议行为观察 |
+| [要素园丁 Phase 2 施工计划](要素园丁Phase2施工计划.md) | 已完成（2026-10-01 三波同日施工完毕，W1 `cfaa0f4` / W2 `ac1f0a6` / W3 `2070c2d`；真机验收项见计划文末未验证清单，留用户日常复核） | 三件套：①园丁独立配置——`runGardener` 合成快照注入覆盖（收紧与放宽双向生效，confirm 闭包方案已否决）；`gardener?` 可选块零迁移（无块=按次动态继承主 Agent 当前配置，运行中定格）；档位裁三档（review/material/full）；思考档随覆盖块；设置页「园丁」tab。②快捷入口——工具栏一键按钮 + 全局 Ctrl/Cmd+Shift+G 与 `/整理要素` 三入口共用 sendMessage 链路，运行中自动排队，零 core 改动。③主 Agent 主动委派——`DelegateToGardener` 描述扩写触发信号/频率节制/先建议后委派（D6），工作原则加收尾回顾软约束（D7），硬节流闸不做视真机另批。各波门禁 487/488 测试 + 双 typecheck + 生产构建。browser-use 冒烟已于 2026-10-01 dev server 恢复后补做（园丁 tab / 双开关展开 / 三档下拉 / 按钮与快捷键触发 / 模态守卫，见计划文末补记）；未验证：test-novel 覆盖端点真机、W3 主动建议行为观察 |
 | [知识库直达工具计划](知识库直达工具计划.md) | 已完成（2026-09-30 单波次实现，随 release-v1.4.0 于 2026-10-01 发布上线，工具 `20bc79a`） | 新增 `KnowledgeLookup` Agent 工具：平台映射常量（8 键：维基百科/英文维基/维基词典/维基文库/百度百科/萌娘百科/SCP 中文维基/MDN，URL 模板，扩展调研定稿）+ `provider.fetch` 直达条目全文，实体查询从两步并为一步。未命中最小判定（4xx/维基 Special: 停留）；零 linkseek 改动、零迁移。门禁 471 测试全绿 + 双包 typecheck；8 键生产链路全部实证（维基系五键 2026-10-01 mihomo 恢复后补测通过，en 维基首败为恢复期瞬时抖动、重试即过）；随版附带聊天链接新标签打开与 CI actions 升级消 Node 弃用警告（六 action 升级 + deploy-pages 单步静默，dispatch 重跑零警告）；剩 UI 冒烟待用户真机复核 |
 | [linkseek 直连与 CORS 修复计划](linkseek直连与CORS修复计划.md) | 已完成（W1 NovAI `9bebd03` / W2 linkseek `660edd6`，2026-09-29 结项；linkseek 侧随 CI/CD v0.2.0/v0.2.1 上线，NovAI 侧 `release-v1.3.0` 已正式发布（tag 推送触发 Pages 工作流，线上 bundle 验证含新文案）） | 修复「自部署 linkseek」档设计缺陷：`/v1` CORS 白名单把带 Key 的浏览器流量一起拦掉（实证 2026-09-29，Key 与端点本身无问题）。linkseek 侧 CORS 一律回显 Origin、匿名防线收拢 `resolveCaller`、Key 独立突发限流（默认 30/分，不设日配额）；NovAI 侧档位改名「linkseek 直连（API Key）」（枚举值不变零迁移）、预填官方托管地址、双仓引导文案同步。产品重定位：该档真实语义是 BYOK 直连任意实例（含官方托管），Origin 白名单只是作者生产实例的匿名绿灯开关。本地 curl 九项 + 生产四项（原缺陷场景 Key+白名单外 Origin 200）+ test-novel 浏览器真机全过；遗留：管理台总闸抽检未做（不阻塞） |
 | [要素园丁 Phase 1 施工计划](要素园丁Phase1施工计划.md) | 已完成（2026-09-25 结项，`3ac5dd2`/`05c1ea0`/`2311afa`） | 依据《要素园丁子代理设计》v3 落地 Phase 1 最小闭环：`prompts/ELEMENT.md` Schema 层（默认六节规范，createProject 初始化 / repairProject 缺失补齐不覆盖 / PromptList 第四组「要素规范」）；园丁子代理运行壳（persona + 要素规范注入 + 六工具白名单 + `elements/` 路径闸，独立 ModelView 复用同一 `query()` 零 Loop 改造，深度固定 1 层）；`DelegateToGardener` 委派工具挂主 Agent 工具面（内层写工具复用同一确认链、档位继承，确认卡与写回面板带「园丁」归属徽标）；`/整理要素` 斜杠命令 + 聊天区嵌套「🌿 园丁整理」任务组。门禁 460 测试 + core/app 双 typecheck + 生产构建；真实 LLM 全流程 2026-10-01 经用户真机复核通过（见计划文末补记） |
