@@ -6,7 +6,7 @@
 
 ## 状态
 
-进行中（2026-10-01 开工；W1 已完成，W2/W3 待施工）。
+进行中（2026-10-01 开工；W1、W2 已完成，W3 待施工）。
 
 ## 背景与范围
 
@@ -163,3 +163,19 @@ app 改动：
 1. **日期口径修正（计划外随批）**：此前立档与真机复核补记写的「2026-09-29」为臆断（实际对话日 2026-10-01），本次随批修正 8 份文档中的立档 / 复核 / 拍板日期；linkseek v1.3.0 发布等 git 历史事实日期保留不动。
 2. **发现未修**：`services/types.ts` 的 `ProjectConfigView.llm.protocol` 注释仍写「生成链路当前仅实现 openai」——多协议计划结项时漏改的过时注释（四协议早已接入）。按纪律记日志不顺手改，留 W3 收尾或修复批。
 3. **已知简化**：模型覆盖开关打开但四项未填全时，防抖保存写入的残缺块被 normalize 剔除，重开设置页开关回到关闭态——「不完整的覆盖 = 没有覆盖」行为自洽，面板文案已注明；不做「填一半保持开关」的暂态。
+
+### 2026-10-01 W2 快捷入口完工
+
+**改动清单**：
+
+- app `composables/keyboard.ts`：`isGardenerShortcut`——Ctrl/Cmd+Shift+G 匹配（Shift 按下时浏览器报大写 'G'，比较前 toLowerCase 归一；带修饰键的组合不会处于输入法组合中，刻意不加 isComposing 排除）；
+- app `ChatPanel.vue`：`triggerGardener` 共享触发函数——工具栏按钮 / 全局快捷键 / `/整理要素` 斜杠命令三入口合一（`followAndScrollToBottom` + sendMessage，斜杠分支改为复用）；window 级 keydown 监听（onMounted 挂 / onBeforeUnmount 摘，成对），`role="dialog"` 模态守卫（设置页等 BaseModal 弹窗打开时不抢键，避免弹窗背后触发委派）；输入区工具栏左组（权限档位旁）加「整理要素」一键按钮——照 PermissionPresetPicker 工具行样式与叶形图标，tooltip 注明快捷键与运行中排队语义；
+- 测试：`keyboard.test.ts` 新增快捷键矩阵 1 条（大写/小写两形态命中、缺 Shift / 缺主修饰键 / 其他键位 / 无修饰键不误触、Ctrl+Cmd 同按无害命中）。
+
+**门禁**：54 文件 488 测试全绿 + 双 typecheck + 生产构建（990ms）。
+
+**验收与降级**：browser-use 冒烟未执行——dev server（5173）仍未运行，遵 AGENTS.md 不自起 dev server。兜底：快捷键匹配为纯函数且有矩阵单测；三入口共用同一触发函数，enqueue 行为完全复用既有 sendMessage 链路（chat store 既有已测行为）。冒烟项（按钮渲染与点击、快捷键触发、运行中触发进 QueueDock）与真机验收（触发后 Agent 确实委派园丁）留待 dev server 恢复后补。
+
+**偏差记录**：
+
+1. 无计划外偏差。快捷键选定 Ctrl/Cmd+Shift+G（G = 园丁 Gardener；Chrome 中该组合仅在查找栏已打开时为「查找上一个」，本应用 preventDefault 覆盖，无实际冲突）。
