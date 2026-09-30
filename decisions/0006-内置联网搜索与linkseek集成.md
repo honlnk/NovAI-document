@@ -47,3 +47,7 @@ browserless 容器网络必须隔离（不通内网、不可达云元数据端�
 ## 与 0002 的关系
 
 0002 的最小工具集决策是其阶段的正确产物；本决策在产品进入下一阶段时**收回**其中 Web Search / Web Fetch 一条，其余不照搬条目（多 agent、MCP 生态、LSP、Task 系统等）维持不变。参考实现取自 DeepSeek Harness 的 `packages/web/`（tool-web 的工具契约与 search/fetch 裁剪、provider seam 形状），细节取舍见计划文档「已拍板决策」。
+
+## 补记（2026-09-30）：联网工具面扩为 3——KnowledgeLookup 知识平台直达
+
+实体查询（人物事迹、时间线、字词、古籍原文、ACG 设定）是写小说的主导联网形态，原先要 WebSearch（摘要）→ WebFetch（全文）两步。知识平台是标题可寻址的，故新增 `KnowledgeLookup(platform, term)`：代码内 8 键平台映射（维基百科/英文维基/维基词典/维基文库/百度百科/萌娘百科/SCP 中文维基/MDN），URL 模板渲染后走同一 `provider.fetch`（render:auto 复用）。原则不变：工具保持 dumb（未命中只报引导文案，模型自己换平台/换条目名/转 WebSearch），无平台专用逻辑，加平台 = 映射表加一行。详见《知识库直达工具计划》。
