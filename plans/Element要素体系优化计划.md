@@ -67,11 +67,11 @@ elements/
 
 | 目录 | 存放内容 | 示例 |
 |:--|:--|:--|
-| `characters/` | 人物角色 | 云溪、鸿影、裴行舟 |
-| `locations/` | 可反复出现的地点 | 武当山、玄岳门、鸿家庄 |
+| `characters/` | 人物角色 | 人物A（主角）、人物B（主角养育人）、人物C（门派长辈） |
+| `locations/` | 可反复出现的地点 | 山A（主场景）、山门B、庄园C（已毁） |
 | `entities/` | 非人物非地点的具体实体 | 青霜剑、太乙玄门剑、乌云踏雪、九转回春丹 |
-| `plots/` | 独立剧情事件块 | 鸿家庄灭门之夜、清虚真人留婴 |
-| `timeline/` | 按阶段拆分的时间线 | timeline-01-缘起.md、timeline-02-幼年.md |
+| `plots/` | 独立剧情事件块 | 灭门之夜、山门拾婴 |
+| `timeline/` | 按阶段拆分的时间线 | timeline-01-开篇.md、timeline-02-成长.md |
 | `worldbuilding/` | 抽象规则和体系 | 大靖王朝、武当派、内功境界、江湖规矩 |
 
 ## `entities/` 与 `worldbuilding/` 的边界
@@ -94,7 +94,7 @@ elements/
 - `青霜剑.md`：一柄具体武器
 - `乌云踏雪.md`：一匹具体坐骑
 - `九转回春丹.md`：一种具体丹药
-- `鸿夫人的凤头钗.md`：一个具体信物
+- `〈人物〉的信物.md`：一个具体信物（遗物信物）
 
 判断原则：
 
@@ -146,9 +146,9 @@ elements/
 建议命名：
 
 ```txt
-plot-001-鸿家庄灭门之夜.md
-plot-002-火中拾婴.md
-plot-003-玄岳门遇裴行舟.md
+plot-001-灭门之夜.md
+plot-002-拾婴.md
+plot-003-山门相遇.md
 ```
 
 建议字段：
@@ -169,8 +169,8 @@ plot-003-玄岳门遇裴行舟.md
 建议命名：
 
 ```txt
-timeline-01-缘起.md
-timeline-02-幼年.md
+timeline-01-开篇.md
+timeline-02-成长.md
 timeline-03-收徒.md
 ```
 
