@@ -285,6 +285,17 @@ writeSystemPrompt(projectId: string, content: string): Promise<void>
 testLlm(config: LlmConfigView): Promise<ConnectionTestResultView>
 testEmbedding(config: EmbeddingConfigView): Promise<ConnectionTestResultView>
 testRerank(config: RerankConfigView): Promise<ConnectionTestResultView>
+getGardenerPresets(projectId: string): Promise<GardenerPresetView[]>
+saveGardenerPresets(projectId: string, presets: GardenerPresetView[]): Promise<GardenerPresetView[]>
+```
+
+园丁快捷选项（2026-10 要素整理参数化 W2 新增）：独立于 `novel.config.json`，存项目内 `.novai/gardener-presets.json`，UI 编辑即写盘（文件小不做防抖）；空列表落盘为 `{ "presets": [] }`，读取失败/文件缺失容错为空数组。
+
+```ts
+type GardenerPresetView = {
+  label: string // 列表显示名
+  prompt: string // 勾选后拼进任务消息的文本
+}
 ```
 
 建议 UI 使用 patch 更新配置，而不是每次提交完整 `novel.config.json`：
