@@ -6,7 +6,7 @@
 
 ## 状态
 
-施工中（2026-10-02 开工；W1-W3 已落地，W4 真机回归待做，见 §八施工日志）。
+已完工（2026-10-02 四波全部落地；W4 真机回归抓到两个旧项目兼容问题并当场修复，见 §八施工日志）。
 
 ## 文档目的
 
@@ -263,3 +263,20 @@
 6. **内部标识同步改名**：组件 `SceneCommandPopover`→`OutlineCommandPopover`、事件 `changeScene`→`changeOutline`、目标类型 `prompt-scene`→`prompt-outline` 等（计划只点名「选择器与文案」，内部名一并改防长期漂移；`其他场景`等无关语义的措辞不动）。
 
 门禁：507 测试全绿（新增 4 条迁移用例：打开迁移+内容不动+config 映射、幂等、同名冲突保留、归一化边界）+ core/app 双 typecheck 干净。
+
+### W4（2026-10-02）：真机回归
+
+**验证方式偏差（最重要的一条）**：浏览器 IAB 的合成输入不构成 FSA 要求的「用户激活」，`requestPermission`/`showDirectoryPicker` 全被浏览器安全模型挡住——恢复项目、打开项目、新建项目三条入口都无法在 IAB 里自动化。真机回归改走 **Node 侧适配器挂真实项目**：`~/note/test-novel` 通过 Node-FS 版 DirectoryHandle 适配器挂进 `repairProject` + `setRuntimeProject` + `enqueueMessage`（app 调用的同一 services 链路），真实 DeepSeek 调用、真实文件读写、会话与日志真实落 `.novel/`。三阶段全过（跑完已把测试项目恢复原状；迁移幂等，用户下次打开自动重跑）。**app UI 层（@大纲 弹层、toast、状态栏 chip、提示词面板文案）未做浏览器走查**——由 vue-tsc + 单测兜底，列入未验证清单。
+
+真机回归抓到并当场修复两个问题（均已补单测）：
+
+1. **config 旧字段未随写回丢弃**：`normalizeProjectConfig` 的 `...config.settings` 展开把 `activeScenePromptPath` 原样带回写回结果；且写回触发条件用 `Boolean(旧字段值)`，本项目旧字段为 `null`（falsy）根本不触发写回。修：析构丢弃旧字段；触发条件改为「字段存在即写回」（`!== undefined`）。W3 施工日志第 3 条声称「旧字段名被丢弃」与事实不符，以此为准。
+2. **v1 旧默认 system.md 模板未豁免**：monorepo 重构前出厂的默认模板只有标题+占位句（比 `LEGACY_DEFAULT_SYSTEM_PROMPT` 更早一代），真机项目的 system.md 正是它——字节比对不中，占位文本被拼进 system。修：新增 `LEGACY_DEFAULT_SYSTEM_PROMPT_V1` 一并豁免。scene 模板无此问题（真机字节与常量一致）。
+
+三阶段结论（证据存 `/tmp/novai-w4/evidence-phase*.json`，会话/日志随验证轮落测试项目后已随恢复清除）：
+
+- **阶段一（迁移 + 越权复现）**：scenes→outlines 真机迁移正确（scene-001.md 保留文件名移入 outlines/、scenes/ 删除、config 写回）。「查一下 李世民身世」全程只读（FindFiles/RagSearch/KnowledgeLookup/ReadFile 六次调用，零写工具），elements/ 与 chapters/ 内容哈希不变，聊天直接给出完整回答并**主动提议**「是否把家世补进人物卡」而非擅动——正是计划目标行为。注入分层核对：system=身份+结构+工具规则（旧模板不注入）、index1=user-role NovAI.md reminder（真实内容）、未选大纲不附带。
+- **阶段二（写作链路）**：「帮我写第 1 章」→ CreateFile `chapters/第001章-城墙下的名字.txt`（965 字，真实落盘）；「把开头一段改成倒叙」→ EditFile 修改该章（哈希变化）。
+- **阶段三（大纲 + system.md 链路）**：选中 main.md → 模型能原样引用大纲「关键节点」（请求级动态附着端到端生效）；切换 → modelView 出现「用户已将写作大纲从《main.md》切换为《outline-002.md》。」留痕；关闭 → 出现关闭留痕、模型确认无大纲。**留痕只落 modelView（持久化），不进显示层**——留痕面向模型（计划原意「防模型懵圈」），用户侧反馈由 toast+状态栏 chip 承担。system.md 改为真实内容后：模型复述出「短句白话」、modelView[0] 含该段——修改即注入生效。计划第 4 项「新项目默认模板不注入」由单测覆盖（新建项目入口同样被 FSA 墙挡住，未做真机新建）。
+
+门禁：517 测试全绿 + core/app 双 typecheck 干净 + 文档同步。
