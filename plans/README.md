@@ -8,13 +8,14 @@
 
 | 文档 | 状态 | 说明 |
 | :-- | :-- | :-- |
+| [Agent 提示词分层与越权修复计划](Agent提示词分层与越权修复计划.md) | 施工中（2026-10-02 开工，W1 已落地） | 依据[越权诊断](../project/Agent越权执行问题诊断.md)对主 Agent 提示词做分层重构：砍掉 system「工作原则」栏只留身份+结构事实（陈述句）、system.md 后置拼接且默认模板未修改不注入、NovAI.md 降为 user-role `<system-reminder>`（层级声明+digest）、大纲随最新 user 消息动态附带不持久化（W3 scenes→outlines 改名含迁移）、user 尾巴删除、工具描述中性化；不做动词白名单/审批状态机/审查 LLM。四波：W1 system 重构+模板+工具描述 → W2 注入机制 → W3 改名迁移 → W4 真机回归。前身草稿「上下文分层注入重构计划」未成稿即被本计划取代（其「运行时快照」想法未纳入） |
 | [Element 要素体系优化计划](Element要素体系优化计划.md) | 部分落地，继续推进 | `elements/entities/`、`entity` 类型、实体提取、RAG metadata 和 UI 数量展示已落地；要素模板已由《要素模块缺陷补全计划》落地，剧情块/时间线拆分提取侧已强化、写入侧归并与 Agent 编写要素相关项由《要素园丁子代理设计》承接 |
 
 ## 待开始
 
 | 文档 | 状态 | 说明 |
 | :-- | :-- | :-- |
-| [上下文分层注入重构计划](上下文分层注入重构计划.md) | 待用户审核 | 主 Agent 上下文组装 dsh 化重构：system 消息改静态（身份+逐工具纪律+交付原则），system.md/NovAI.md 降为 user-role 工作区提醒（含「不覆盖用户直接指令」层级声明），新增运行时快照（场景+权限档位+写边界），user 消息删「直接调用文件工具」尾巴。三决策已确认、提示词文案草案内嵌计划待逐字审核；不动 compaction/园丁/提取器，不做动词白名单 |
+| [要素整理参数化与提取要素退役计划](要素整理参数化与提取要素退役计划.md) | 待用户审核 | 四波：W1 ChapterPicker 改造为园丁参数弹窗（自由文本+快捷选项+章节双列表，斜杠/输入框按钮→当前会话、侧栏按钮→新会话、双击直发）→ W2 `.novai/gardener-presets.json` 快捷选项配置+设置页编辑区 → W3 斜杠命令落文本进输入框+发送链路前缀拦截替换（GARDENER_TASK_PROMPT/INIT_NOVEL_PROMPT）→ W4 退役 `/提取要素` 全套（UI/composable/core 提取器+writer）。R6 硬编码流水线由园丁子智能体体系（LLM WIKI：章节=Raw Sources、ELEMENT.md=Schema、要素=The Wiki，AI 服务 AI）完整替代；templates.ts 经核查为 ELEMENT.md 兜底资产保留；输入框富文本化（Lexical 高亮）明确留二期 |
 
 ## 已完成
 
