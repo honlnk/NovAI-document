@@ -6,7 +6,7 @@
 
 ## 状态
 
-施工中（2026-10-02 开工；W1、W2 已落地，见 §八施工日志）。
+施工中（2026-10-02 开工；W1-W3 已落地，W4 真机回归待做，见 §八施工日志）。
 
 ## 文档目的
 
@@ -246,3 +246,20 @@
 6. **新字段用终态命名**：ChatTurnInput 新字段名 `outline`（值仍为 scenes/ 路径），W3 只改路径值与 settings 字段名，避免 W2/W3 两度改名。
 
 门禁：503 测试全绿（prompt.test.ts 22 例，含 digest 注入/同内容跳过/变化重注/压缩吞掉重插/骨架与空内容不注入/大纲三条件过滤/附着最后一条 user 且不改原数组/切换留痕文案）+ typecheck 干净。
+
+### W3（2026-10-02）：scenes→outlines 改名与大纲模板
+
+改动文件：core 侧 `core/project/defaults.ts`（`DEFAULT_OUTLINE_TEMPLATE` 新三节模板〔梗概/主线/关键节点〕+ `LEGACY_DEFAULT_OUTLINE_TEMPLATE` + settings 字段改名）、`types/project.ts`（`activeOutlinePath`、`missing-prompts-outlines`）、`core/fs/project-fs.ts`（目录常量、createProject 写 `outline-001.md`、`readOutlinePrompt`、`migrateScenesToOutlines` 迁移、config 旧字段与前缀映射）、`types/chat.ts` + `core/chat/target.ts`（`prompt-outline`）、`core/agent/prompt.ts`（双模板比对、结构说明改 outlines/）、`services/agent-service.ts`、`services/types.ts`；app 侧 `PromptList`/`CategoryPanel`/`ProjectView`/`ChatPanel`/`IndexStatusBar`、`OutlineCommandPopover`（原 `SceneCommandPopover` 改名）、`stores/project.ts`（`changeActiveOutlinePath`）。
+
+按计划落地：目录/默认文件/模板常量/settings 字段四件套改名；旧项目打开时自动迁移（幂等）；config 归一化读入旧字段名与前缀映射（不丢用户选择）；app 端「场景」文案与选择器全部改「大纲」（@大纲 弹层、大纲 chip、状态栏、提示词面板）。
+
+偏差与补充（均已在汇报中说明）：
+
+1. **inspectProject 兼容旧目录**：检测改为 outlines/ 或 scenes/ 任一存在即通过——否则未迁移的旧项目会被误判损坏进修复流程（计划未提）。
+2. **迁移为逐文件搬移而非目录改名**：浏览器 FSA 没有目录 rename 原语；同名冲突文件保留原处不覆盖（内容优先保护已存在版本），scenes/ 目录仅在搬空后删除，仍有残留则保留（计划只写「目录整体改名」，冲突语义是实现补充）。
+3. **config 写回时机**：归一化始终在读时映射（旧字段名/scenes 前缀随读随治），迁移发生或 config 带旧字段时把结果写回盘——双保险。
+4. **toast 文案纠错**：切换/关闭大纲从「新建会话后生效」改为直接确认——W2 动态附带后当轮即生效，旧文案已失真（W2 遗留的联动文案，随本波更正）。
+5. **旧默认模板双比对**：迁移过来的旧项目未动过的 scene-001.md（旧 `# Scene Prompt` 模板）同样不附加——机制同 system.md/NovAI.md 的 legacy 比对（计划只写「模板与注入机制同 §1.1.1」，此为必要推论）。
+6. **内部标识同步改名**：组件 `SceneCommandPopover`→`OutlineCommandPopover`、事件 `changeScene`→`changeOutline`、目标类型 `prompt-scene`→`prompt-outline` 等（计划只点名「选择器与文案」，内部名一并改防长期漂移；`其他场景`等无关语义的措辞不动）。
+
+门禁：507 测试全绿（新增 4 条迁移用例：打开迁移+内容不动+config 映射、幂等、同名冲突保留、归一化边界）+ core/app 双 typecheck 干净。
