@@ -37,6 +37,7 @@
 | [Agent 自主 RAG 工具](architecture/Agent自主RAG工具设计.md) | `RagSearch` 工具、向量库与要素文件关系、Agent 使用策略；§八优先级已标注 Orama 落地实况 |
 | [向量索引与重排序](architecture/向量索引与重排序设计.md) | Embedding 文本组装、召回、Rerank、索引失效与解释层；rerank.mode 当前固定 text |
 | [UI 协作接口契约](architecture/UI协作接口契约设计.md) | core 与 UI 协作边界、services 接口层和 Agent UI 事件协议；§3.5 文件索引与 §12 待办已对齐今日实况 |
+| [Agent 提示词拼接样例](architecture/Agent提示词拼接样例-新旧对照.md) | 主 Agent 发给 LLM 的完整消息序列新旧对照快照（system 分层/reminder/用户包装/大纲附带）；2026-10-02 真机采样，随实现演进以代码为准 |
 
 ## Decisions
 
