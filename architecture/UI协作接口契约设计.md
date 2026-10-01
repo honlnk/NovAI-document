@@ -146,16 +146,16 @@ src/
 | `packages/core/src/services/mappers.ts` | 将 core 内部结构映射为 UI view type |
 | `packages/core/src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
 | `packages/core/src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
-| `packages/core/src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试 |
+| `packages/core/src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试、模型测试、园丁快捷选项（`getGardenerPresets`/`saveGardenerPresets`，`.novai/gardener-presets.json`，2026-10 要素整理参数化 W2） |
 | `packages/core/src/services/agent-service.ts` | Agent 会话、enqueue/updateQueue/stop、事件总线、队列快照、changeLedger 视图 |
 | `packages/core/src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
-| `packages/core/src/services/element-service.ts` | 要素提取预览 |
 | `packages/core/src/services/completion-service.ts` | 对话输入框 FIM 补全(enabled 门控转发) |
 | `packages/core/src/services/organize-service.ts` | 旧项目章节批量整理(扫描分类 + 批量改名) |
 | `packages/core/src/services/index.ts` | service barrel export |
 
 > [!note] 已删除的文件
 > `generation-service.ts` 曾在早期版本中作为「流式生成调试接口」存在,已在 Agent Loop 重构 Stage 0 清理(`abfcbb4`);相应能力由 `agent-service` 的 enqueue + 事件总线覆盖。
+> `element-service.ts`(`previewElementExtraction`/`writeExtractedElements`)已于 2026-10 随 `/提取要素` 退役删除(要素整理参数化 W4),要素提取/整理由园丁子智能体(主 Agent `DelegateToGardener` 委派)承接;`settings-service.ts` 的 `getGardenerPresets`/`saveGardenerPresets` 为其参数化配套。
 
 当前 store 文件：
 
@@ -466,7 +466,8 @@ runRagDebug(projectId: string, query: string): Promise<{
 > [!warning] GenerationService 已删除(2026-09-20 补丁)
 > `GenerationService` 及其 `streamGeneration` 调试接口已在 Agent Loop 重构 Stage 0(`abfcbb4`)**删除**,相应能力由 `AgentService.enqueueMessage()` + 事件总线 + 会话视图覆盖。本节关于 `GenerationService` 的描述仅作历史参考保留。
 >
-> `ElementService.previewElementExtraction` 仍存在于 `packages/core/src/services/element-service.ts`,是当前要素提取预览的唯一入口。
+> [!warning] ElementService 已删除(2026-10-02 补丁,要素整理参数化 W4)
+> `ElementService`(`previewElementExtraction`/`writeExtractedElements`)已随 `/提取要素` 斜杠命令退役**整体删除**(UI、composable、core 提取器与 writer 全量清理)。要素提取/整理由园丁子智能体承接(主 Agent 经 `DelegateToGardener` 委派);用户入口为 `/整理要素` 参数弹窗(自由文本+快捷选项+章节范围),配套 `SettingsService.getGardenerPresets()/saveGardenerPresets()`(`.novai/gardener-presets.json`)。本节以下描述仅作历史参考保留。
 
 这两组接口主要服务 Test Lab 调试能力。
 
