@@ -6,7 +6,7 @@
 
 ## 状态
 
-施工中（2026-10-02 开工；W1 已落地，见 §八施工日志）。
+施工中（2026-10-02 开工；W1、W2 已落地，见 §八施工日志）。
 
 ## 文档目的
 
@@ -229,3 +229,20 @@
 5. **RagSearch 提示词侧同步中性化**：计划 §二只点名工具 description；system 工具规则栏里 RagSearch 那条同样带「写新章节、续写、改稿时先用」的行动预设，一并改为中性能力描述。
 
 索引修正：`plans/README.md` 原有「上下文分层注入重构计划」索引行（本计划的前身草稿名，文件从未落盘），随本计划立稿取代——旧稿描述中的「运行时快照」想法未纳入本计划。
+
+### W2（2026-10-02）：注入机制——NovAI.md reminder + 大纲动态附带
+
+改动文件：`core/agent/prompt.ts`（reminder 构建、digest 同步、大纲附着与切换留痕，新增注入函数群）、`core/agent/model-view.ts`（`insertAfterSystem`/`replaceMessage` 原语）、`core/agent/query.ts`（`outlineReminder` 请求级附着，初始与溢出重试两处）、`core/chat/session.ts`（每 turn 接线）、`types/chat.ts`（会话状态 `novaiOverviewDigest`/`lastOutlinePath`、入参 `novaiOverview`/`outline`）、`services/agent-service.ts`（读取与传递）、`core/fs/project-fs.ts` + `core/project/defaults.ts`（NovAI.md 空占位、骨架退役为 `LEGACY_DEFAULT_NOVAI_OVERVIEW`）、`core/agent/prompt.test.ts`。
+
+按计划落地：NovAI.md 非空即注入为持久化 user-role `<system-reminder>`（层级声明四句），digest 按需注入（首轮/内容变化时注入或重注）；大纲（此波仍 `prompts/scenes/` 路径）发送时动态附到最新 user 消息尾部、不落持久化历史、不进压缩请求（三条件过滤：已选路径+内容非空+非未动默认模板）；切换留痕（旧→新追加持久化 user 消息）；`systemPromptHash` 收窄（W1 已随签名改造达成）。压缩交互：reminder 可能被压缩吞掉（选区从 index 1 起），下一 turn 检测 marker 缺失即重插 index 1——对位 dsh「session resume 后重新注入」；大纲不持久化天然不受压缩影响（附着函数不改视图，单测覆盖）。
+
+偏差与补充（均已在汇报中说明）：
+
+1. **reminder 原地替换而非追加**：变化时在原位替换、恒为视图唯一一条，新旧不共存——故不需要 dsh 的 baseline 替换声明（「取代此前任何版本」一句话保留在更新版文案里，语义等价且更简）。
+2. **切换留痕补「关闭」文案**：计划只写旧→新；A→null（关闭大纲）同样让模型可感，补「用户已关闭写作大纲（此前为《A》）」。首次选择（null→A）不留痕，大纲随消息附带模型自然看到。
+3. **NovAI.md 未动骨架不注入**：计划只说「不给默认模板」，未提旧项目存量；实现把旧骨架存为 `LEGACY_DEFAULT_NOVAI_OVERVIEW` 参与比对，否则旧项目「待补充」骨架每轮作为 reminder 灌进上下文。新项目/修复补齐一律写空占位文件。
+4. **大纲附着不参与 token 估算**：`estimateTokens` 只看视图，动态附着的大纲不计入压缩阈值——阈值估算略乐观，大纲量级通常小，可接受。
+5. **debug 日志不含动态大纲**：`agent_messages_debug` 记录的是视图消息；大纲在请求层附加，调试时须知。
+6. **新字段用终态命名**：ChatTurnInput 新字段名 `outline`（值仍为 scenes/ 路径），W3 只改路径值与 settings 字段名，避免 W2/W3 两度改名。
+
+门禁：503 测试全绿（prompt.test.ts 22 例，含 digest 注入/同内容跳过/变化重注/压缩吞掉重插/骨架与空内容不注入/大纲三条件过滤/附着最后一条 user 且不改原数组/切换留痕文案）+ typecheck 干净。
