@@ -15,6 +15,7 @@
 
 | 文档 | 状态 | 说明 |
 | :-- | :-- | :-- |
+| [输入框富文本化施工计划](输入框富文本化施工计划.md) | 进行中（2026-10-04 立稿开工；W1 编辑器接入与行为全等平移完工，门禁 532 测试 + 双 typecheck + 生产构建绿；W2 镜像层健壮化 / W3 token 高亮待做） | 《要素整理参数化》二期：textarea → Lexical headless（0.49 对齐 dsh），`/命令` TextRefNode 持久高亮 + `@大纲名` 输入态高亮（非 chip），GhostTextOverlay 镜像叠层平移至 contenteditable 并修滚动失同步存量 bug（方案移植自自研插件 dsh-input-assist 的 contenteditable 适配）；编辑器为唯一真值、`inputText` 降为投影，发送链路 `expandSlashCommand` 零改动。三波：W1 行为全等平移 → W2 度量健壮化+滚动同步 → W3 token 高亮。claim 着色/@留痕/错别字检查/键盘层 Lexical command 迁移均显式不做 |
 
 ## 已完成
 
