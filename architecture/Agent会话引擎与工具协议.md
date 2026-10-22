@@ -944,7 +944,7 @@ type GetFileChangeHistoryOutput = {
 
 ### 14.2+(2026-09-20 补丁)今日剩余待办
 
-- ~~近期章节上下文 `recentChapters` 接入 Loop~~(已结项放弃,2026-10-23:自动注入被工具化读取(`FindFiles` / `ReadFile`)取代,类型残留待清理,见 [当前进度](../project/当前进度.md))
+- ~~近期章节上下文 `recentChapters` 接入 Loop~~(已结项放弃,2026-10-23:自动注入被工具化读取(`FindFiles` / `ReadFile`)取代,类型残留已清理(`50d3316`),见 [当前进度](../project/当前进度.md))
 - RAG 自动后台增量重建与错误降级
 - 生成结果结构化处理(计数刷新、自动打开变更文件、章节级元数据)
 - 要素模板与拆分规则稳定化(见 [Element 要素体系优化计划](../plans/Element要素体系优化计划.md))
