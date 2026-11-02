@@ -464,7 +464,7 @@ packages/app/src/
 
 - [UI 设计文档](../product/UI设计文档.md)
 - [UI 协作接口契约设计](../architecture/UI协作接口契约设计.md)
-- [当前进度](当前进度.md)
+- [当前进度](../project/当前进度.md)
 - [MVP 清单](MVP清单.md)
 
 ### 10.2 参考项目

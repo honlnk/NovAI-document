@@ -36,20 +36,20 @@ dsh 会话 `session-64899d7b`（2026-09-21，标题「看一下 当前项目 都
 
 ### 3.1 身份段落预设「写文件是使命」（源头）
 
-[prompt.ts:31](../../../packages/core/src/core/agent/prompt.ts)：「你的工作不是把所有正文都堆到聊天里，而是理解用户意图，然后**使用工具读取、修改或创建项目文件**。」把「修改」焊进使命陈述。
+[prompt.ts:31](../../packages/core/src/core/agent/prompt.ts)：「你的工作不是把所有正文都堆到聊天里，而是理解用户意图，然后**使用工具读取、修改或创建项目文件**。」把「修改」焊进使命陈述。
 
 dsh 对照：system prompt 全文（6888 字符，逐段短句按 SECTION_ORDERS 装配）**没有任何一句任务预设**，只有「You are an AI agent powered by DeepSeek Harness.」+「You are a coding agent powered by the {model} model.」两行身份，其余全部是逐工具的使用纪律（「Use the read tool — not shell commands like cat」式可执行句式）。
 
 ### 3.2 项目记忆层级被拔高到命令层
 
-NovAI.md（含「历史人物（已有要素卡）：李世民（亲政第七年）」）注入在 system 头部（[prompt.ts:18-20](../../../packages/core/src/core/agent/prompt.ts)），与用户当轮指令共享最高指令层级。模型读到的是「项目要求维护这张卡」+「我的使命是改文件」。
+NovAI.md（含「历史人物（已有要素卡）：李世民（亲政第七年）」）注入在 system 头部（[prompt.ts:18-20](../../packages/core/src/core/agent/prompt.ts)），与用户当轮指令共享最高指令层级。模型读到的是「项目要求维护这张卡」+「我的使命是改文件」。
 
 dsh 对照：AGENTS.md/CLAUDE.md 以 **user-role `<system-reminder>`** 注入，且开头声明三句层级规则：「may be relevant to your work」「More specific instructions take precedence」「**They do not override system, developer, or direct user instructions**」。同一句话「The AI should operate on files」在 NovAI 里是命令，在 dsh 里只是指导。另外 dsh 对指令文件带 digest，**内容不变不重复注入**（baseline 机制）。
 
 ### 3.3 system 拼接缺分隔 + 每轮 user 尾巴推一把
 
-- 重建的完整 system 里，NovAI.md 末行「文风：写实克制……」与固定工作原则首句「你是交互式小说创作 Agent。你的工作……」之间**没有 `---` 分隔**（[prompt.ts:28](../../../packages/core/src/core/agent/prompt.ts) 直接 `head + '\n\n' + fixed`），项目记忆与工作原则在视觉上糊成一段。
-- 每轮 user 消息尾巴固定附「若需要写文件，**直接调用**合适的文件工具」（[prompt.ts:93](../../../packages/core/src/core/agent/prompt.ts)）——每轮都在强化「写文件不需要问」。
+- 重建的完整 system 里，NovAI.md 末行「文风：写实克制……」与固定工作原则首句「你是交互式小说创作 Agent。你的工作……」之间**没有 `---` 分隔**（[prompt.ts:28](../../packages/core/src/core/agent/prompt.ts) 直接 `head + '\n\n' + fixed`），项目记忆与工作原则在视觉上糊成一段。
+- 每轮 user 消息尾巴固定附「若需要写文件，**直接调用**合适的文件工具」（[prompt.ts:93](../../packages/core/src/core/agent/prompt.ts)）——每轮都在强化「写文件不需要问」。
 
 ## 四、伴随发现
 
@@ -59,11 +59,11 @@ prompt.ts 里的意图类授权约束只有两处：DeleteFile（「必须确认
 
 ### 4.2 子代理有执行层硬闸，主 Agent 没有
 
-园丁有 [gardener.ts:88](../../../packages/core/src/core/agent/gardener.ts) 的 `guardElementsScope` 路径闸（写目标不在 elements/ 下在 validateInput 层直接拒绝）。主 Agent 无任何等价机制。架构不对称的观察记录。
+园丁有诊断时 `gardener.ts:88` 的 `guardElementsScope` 路径闸（写目标不在 elements/ 下在 validateInput 层直接拒绝）。主 Agent 无任何等价机制。架构不对称的观察记录。
 
 ### 4.3 system prompt 高易变，KV-cache 不友好
 
-system.md + NovAI.md + scenePrompt 拼进 system 头部，任一文件改动触发 `systemPromptHash` 变化、整条 system 重建（[session.ts:275-284](../../../packages/core/src/core/chat/session.ts)），长会话前缀缓存全废。dsh 对照：system 逐字节稳定，易变内容（文件策略、技能目录、指令文件）走 user 消息尾部追加且带 digest 按需重注。NovAI 自己的 compaction 都特意保持「整段前缀与上次真实请求一致（KV-cache 友好）」（[compaction.ts:108](../../../packages/core/src/core/agent/compaction.ts)）——system 头部没享受同等待遇。
+system.md + NovAI.md + scenePrompt 拼进 system 头部，任一文件改动触发 `systemPromptHash` 变化、整条 system 重建（[session.ts:275-284](../../packages/core/src/core/chat/session.ts)），长会话前缀缓存全废。dsh 对照：system 逐字节稳定，易变内容（文件策略、技能目录、指令文件）走 user 消息尾部追加且带 digest 按需重注。NovAI 自己的 compaction 都特意保持「整段前缀与上次真实请求一致（KV-cache 友好）」（[compaction.ts:108](../../packages/core/src/core/agent/compaction.ts)）——system 头部没享受同等待遇。
 
 ### 4.4 调试日志不存消息原文
 
@@ -71,7 +71,7 @@ system.md + NovAI.md + scenePrompt 拼进 system 头部，任一文件改动触�
 
 ### 4.5 措辞泛化与抽象表述
 
-- [prompt.ts:47](../../../packages/core/src/core/agent/prompt.ts)「不要把完整长篇正文当作唯一结果留在聊天里」本意防长文塞聊天，实际被泛化读成「聊天给完整答案 = 不合格」，成为「必须找个文件写」的推力。
+- [prompt.ts:47](../../packages/core/src/core/agent/prompt.ts)「不要把完整长篇正文当作唯一结果留在聊天里」本意防长文塞聊天，实际被泛化读成「聊天给完整答案 = 不合格」，成为「必须找个文件写」的推力。
 - 「理解用户意图」「应保存在项目文件系统中」等抽象原则对模型约束力远低于 dsh 的可验证句式。
 
 ## 五、dsh 的可借鉴点（组织方式）

@@ -10,7 +10,7 @@
 
 ## 文档目的
 
-依据诊断文档 [docs/project/Agent越权执行问题诊断.md](../project/Agent越权执行问题诊断.md)（下称「诊断」），对主 Agent 的提示词体系做分层重构，修复「查一下 李世民身世」被升级为「改人物卡」这类越权执行问题。本计划是施工依据，波次门禁见 §三，定稿检查单见 §五，未实现项见 §六。
+依据诊断文档 [Agent 越权执行问题诊断](../archive/Agent越权执行问题诊断.md)（下称「诊断」），对主 Agent 的提示词体系做分层重构，修复「查一下 李世民身世」被升级为「改人物卡」这类越权执行问题。本计划是施工依据，波次门禁见 §三，定稿检查单见 §五，未实现项见 §六。
 
 诊断结论一句话：越权是「提示词把 AI 教得太主动」的结果（执行层「不拦」是用户的选择，不是要解决的问题）；dsh 已用同模型对照实验证明病灶在 harness 不在模型。本计划不动 dsh 那套完整 sandbox/approval 状态机，只做三件事：**提示词分层（四级 md 注入）+ system 固定段瘦身（砍原则话、只留身份与项目结构）+ 工具描述中性化**。
 
@@ -208,7 +208,7 @@
 
 ## 七、关联文档
 
-- 诊断：docs/project/Agent越权执行问题诊断.md
+- 诊断：docs/archive/Agent越权执行问题诊断.md
 - 决策：docs/decisions/0005-参考系切换至DeepSeekHarness.md
 - 参考：/Users/honlnk/project/deepseek-harness（agent-instructions / system-prompt / plan-mode）
 
@@ -305,4 +305,4 @@
 
 交叉验证：另一项目（gpt-6.1-sol 经 openai-responses 中转）一轮完整会话的 modelView 分层同样正确——身份行随模型切换为 gpt-6.1-sol、index 1 reminder、用户包装第三行为「默认目标：〈该项目配置的默认章节文件〉」、WebSearch tool 结果自带不可信数据声明。
 
-拼接结果样例（新旧 system 全文、reminder、包装、大纲附带格式、9/28 旧格式对照、跨项目样本）落档 [architecture/Agent提示词拼接样例-新旧对照.md](../architecture/Agent提示词拼接样例-新旧对照.md)（原 `/tmp/novai-w4` 产物，防重启丢失）。
+拼接结果样例（新旧 system 全文、reminder、包装、大纲附带格式、9/28 旧格式对照、跨项目样本）落档 [architecture/Agent提示词拼接样例-新旧对照.md](../archive/Agent提示词拼接样例-新旧对照.md)（原 `/tmp/novai-w4` 产物，防重启丢失）。

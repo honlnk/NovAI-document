@@ -1,685 +1,142 @@
 # NovAI UI 协作接口契约设计
 
-## 一、文档目的
+## 一、契约目标
 
-本文档记录 NovAI 在多人协作开发时，`core` 层与 UI 层之间应如何划分接口边界。
+NovAI 的前端不是直接操作 Agent 内部对象的薄壳，而是通过明确的应用服务使用核心能力。接口契约要解决三个问题：
 
-当前 NovAI 的实现重点集中在 `packages/core/src/core/`：
+- 让界面使用面向业务的动作、视图和事件，而不是理解文件句柄、模型视图和工具运行时。
+- 让核心引擎能够独立演进，不把内部重构扩散到 Vue 组件。
+- 让会话、确认、队列和文件变更有清晰的归属，避免界面各自维护一套业务真相。
 
-- 本地项目文件系统
-- Agent Loop
-- 文件工具
-- RAG 调试链路
-- 项目日志
-- 最近项目恢复
+应用通过核心包公开的服务与类型入口协作。核心包保持 UI 无关，不引入 Vue、Pinia 或组件状态；应用不直接访问核心内部模块，也不使用 Node 文件系统。
 
-这些模块已经具备“本地后台服务”的雏形，但它们目前仍偏内部实现 API。后续如果 UI 直接依赖大量 `core/*` 文件，前端展示层会被迫理解底层文件句柄、Agent 内部消息、工具执行细节和日志细节，协作时容易互相影响。
+## 二、分层与依赖方向
 
-因此，项目已经新增第一版 UI 协作接口层，让 UI 主要依赖这层接口，而不是直接依赖 `core` 的内部模块。
-
-本文档最初用于记录方案；截至 2026-05-01，第一版接口层已经落地到 `packages/core/src/services/` 与 `packages/app/src/stores/`，并完成 `SessionTestView`、`TestLabView` 的迁移验证。
-
-当前状态：
-
-- `packages/app/src/views` 和 `packages/app/src/stores` 不再直接 import `packages/core/src/core/*`。
-- UI 页面主要通过 Pinia store 使用能力。
-- Pinia store 通过 `packages/core/src/services/*` 调用 core。
-- `packages/core/src/services/types.ts` 已经提供第一版显式 view type / event type。
-- `pnpm build` 已通过。
-
-因此，本文档后续同时承担两件事：
-
-1. 记录已落地的 UI 协作接口。
-2. 标记仍然属于临时实现或后续演进的部分。
-
----
-
-## 二、核心判断
-
-当前项目已经有：
-
-- 业务模块边界
-- 类型雏形
-- Agent 事件雏形
-- 工具协议雏形
-- 项目文件读写能力
-
-并且已经有了第一版可用的“前端协作接口”。
-
-更准确地说：
-
-> `core` 已经像后台服务，`services` 已经承担第一版面向 UI 的本地 SDK / Application Service。
-
-不过，这一层目前仍是 v0.1 形态：
-
-- 足够支撑 UI 合作者开始接入。
-- 足够让测试页不直接依赖 core。
-- 还没有完成 Agent 停止、写入确认、会话持久化、结构化工具变更结果等高级能力。
-
-后续 UI 开发者理想上只需要关心：
-
-- 打开项目
-- 读取文件树
-- 打开文件
-- 保存配置
-- 发送一轮 Agent 指令
-- 订阅 Agent 运行事件
-- 展示结果和错误
-
-而不需要知道：
-
-- `FileSystemDirectoryHandle`
-- `ProjectSnapshot` 的完整内部结构
-- `query()` 如何循环
-- `runChatTurn()` 如何拼 prompt
-- 工具结果如何回灌模型
-- 日志何时写入
-- 最近项目如何存在 IndexedDB
-
----
-
-## 三、建议分层
-
-当前已经形成如下结构：
-
-```txt
-src/
-├── core/                 # 底层业务能力和内部实现
-│   ├── fs/
-│   ├── project/
-│   ├── agent/
-│   ├── chat/
-│   ├── tools/
-│   ├── rag/
-│   └── logging/
-│
-├── services/             # 面向 UI 的稳定协作接口层（已落地第一版）
-│   ├── project-service.ts
-│   ├── file-service.ts
-│   ├── settings-service.ts
-│   ├── agent-service.ts
-│   ├── generation-service.ts
-│   ├── rag-service.ts
-│   ├── element-service.ts
-│   ├── mappers.ts
-│   ├── project-runtime.ts
-│   └── types.ts
-│
-├── stores/               # Pinia，负责 UI 状态适配
-│
-└── views/components/     # UI 展示层
+```mermaid
+flowchart LR
+    Components["页面与组件"] --> Stores["Pinia 与交互逻辑"]
+    Stores --> Services["应用服务"]
+    Components --> Services
+    Services --> Core["核心引擎"]
+    Services --> Views["视图与事件契约"]
+    Views --> Stores
+    Views --> Components
 ```
 
-职责建议：
-
-| 层级 | 职责 |
-|:-----|:-----|
-| `core` | 提供项目、Agent、工具、RAG、日志等基础能力；允许内部重构 |
-| `services` | 组合 `core` 能力，向 UI 暴露稳定动作和事件协议 |
-| `stores` | 保存页面状态、loading、当前选择、消息展示数据 |
-| `components/views` | 渲染 UI，触发 store 或 service 动作 |
-
-协作约定：
-
-- UI 优先依赖 `services` 和公开 view types。
-- Pinia store 可以调用 service，但不应承载复杂业务逻辑。
-- UI 不直接依赖 `FileSystemDirectoryHandle`。
-- UI 不直接调用 `core/agent/query.ts`、`core/chat/session.ts` 等内部入口。
-- `core` 可以继续迭代，但要尽量保持 `services` 的外部合同稳定。
-
-当前迁移验证：
-
-- `SessionTestView` 已迁移为 `projectStore / settingsStore / chatStore`。
-- `TestLabView` 已迁移为 store + service 调用。
-- 页面层不再直接读取 `FileSystemDirectoryHandle`、`ProjectSnapshot`、`runChatTurn`。
-
----
+| 层级 | 职责 | 依赖约束 |
+| :-- | :-- | :-- |
+| 页面与组件 | 渲染、收集输入、展示确认与变更 | 可以触发服务动作，不承载 Agent 业务流程 |
+| Pinia 与交互逻辑 | 保存当前项目、会话、消息、设置和加载状态；订阅并归并事件 | 不直接持有目录句柄或模型视图 |
+| 应用服务 | 组合核心能力，提供业务动作、持久化调度、事件与视图映射 | 不依赖 Vue、组件或 CSS |
+| 核心引擎 | 项目文件、Agent 循环、工具、模型协议、要素与检索 | 内部实现不作为 UI 契约 |
 
-## 三点五、当前实现文件索引
+组件通常通过对应 store 使用能力；输入补全这类局部、可取消的交互由 composable 管理。设置页等少量简单场景可以直接调用服务，但仍只能依赖公开服务与视图类型。
 
-当前服务层文件：
+## 三、项目运行时边界
 
-| 文件 | 职责 |
-|:-----|:-----|
-| `packages/core/src/services/types.ts` | UI 协作接口类型，包含 project、file、settings、agent、RAG、element view types |
-| `packages/core/src/services/project-runtime.ts` | service 内部运行时项目注册表，维护 `projectId -> ProjectSnapshot` |
-| `packages/core/src/services/mappers.ts` | 将 core 内部结构映射为 UI view type |
-| `packages/core/src/services/project-service.ts` | 项目创建、打开、恢复、关闭、刷新、检查 |
-| `packages/core/src/services/file-service.ts` | 文件树、文件读取、章节写入、刷新 |
-| `packages/core/src/services/settings-service.ts` | 配置读写、system prompt 读写、模型连接测试、模型测试、园丁快捷选项（`getGardenerPresets`/`saveGardenerPresets`，`.novai/gardener-presets.json`，2026-10 要素整理参数化 W2） |
-| `packages/core/src/services/agent-service.ts` | Agent 会话、enqueue/updateQueue/stop、事件总线、队列快照、changeLedger 视图 |
-| `packages/core/src/services/rag-service.ts` | 索引状态、索引重建、RAG 调试 |
-| `packages/core/src/services/completion-service.ts` | 对话输入框 FIM 补全(enabled 门控转发) |
-| `packages/core/src/services/organize-service.ts` | 旧项目章节批量整理(扫描分类 + 批量改名) |
-| `packages/core/src/services/index.ts` | service barrel export |
-
-> [!note] 已删除的文件
-> `generation-service.ts` 曾在早期版本中作为「流式生成调试接口」存在,已在 Agent Loop 重构 Stage 0 清理(`abfcbb4`);相应能力由 `agent-service` 的 enqueue + 事件总线覆盖。
-> `element-service.ts`(`previewElementExtraction`/`writeExtractedElements`)已于 2026-10 随 `/提取要素` 退役删除(要素整理参数化 W4),要素提取/整理由园丁子智能体(主 Agent `DelegateToGardener` 委派)承接;`settings-service.ts` 的 `getGardenerPresets`/`saveGardenerPresets` 为其参数化配套。
-
-当前 store 文件：
-
-| 文件 | 职责 |
-|:-----|:-----|
-| `packages/app/src/stores/project.ts` | 当前项目、最近项目、当前文件、项目生命周期状态 |
-| `packages/app/src/stores/settings.ts` | 当前项目配置、system prompt、连接测试状态 |
-| `packages/app/src/stores/chat.ts` | Agent 会话视图、enqueue/stop、队列、changeLedger、事件订阅、diff 面板数据 |
-| `packages/app/src/stores/chat-render.ts` | 聊天渲染纯函数:toolCallId 配对、任务组分组、steering 非组边界、纯问答无折叠(W5 新增) |
-
-对 UI 合作者来说，优先使用 store：
-
-```txt
-页面 / 组件
--> useProjectStore()
--> useSettingsStore()
--> useChatStore()
-```
-
-需要更细的调试能力时，再直接使用 service。
-
----
+项目服务负责创建、选择目录打开、恢复最近项目、关闭、刷新和结构检查，并维护最近项目记录。用户授权得到的目录句柄与完整项目快照留在核心运行时，界面只使用项目标识和稳定视图。
 
-## 四、ProjectService
-
-`ProjectService` 负责项目生命周期。
-
-当前接口：
-
-```ts
-isProjectAccessSupported(): boolean
-createProject(name: string): Promise<ProjectView>
-openProject(): Promise<ProjectView>
-restoreLastProject(): Promise<ProjectView | null>
-getLastProjectSummary(): Promise<LastProjectSummaryView | null>
-forgetLastProject(): Promise<void>
-closeProject(projectId: string): Promise<void>
-refreshProject(projectId: string): Promise<ProjectView>
-inspectProject(projectId: string): Promise<ProjectStatusView>
-```
-
-UI 面向的项目结构建议使用 `ProjectView`，不要直接暴露完整 `ProjectSnapshot`：
-
-```ts
-type ProjectView = {
-  id: string
-  name: string
-  rootName: string
-  files: ProjectFileNodeView[]
-  config: ProjectConfigView
-  activeFilePath?: string
-}
-```
-
-`ProjectService` 内部可以维护 `projectId -> ProjectSnapshot` 的运行时注册表：
-
-```ts
-type ProjectRuntimeRegistry = {
-  get(projectId: string): ProjectSnapshot | null
-  set(project: ProjectSnapshot): void
-  delete(projectId: string): void
-}
-```
-
-这样 UI 只拿稳定的 `projectId`，底层仍可以保留浏览器目录句柄。
-
-当前注意事项：
-
-- `openProject()` 内部会调用 `repairProject()`，因此打开项目时会温和补齐缺失默认结构。
-- UI 不需要再单独展示“修复项目结构”作为常规流程。
-- `ProjectSnapshot` 和 `FileSystemDirectoryHandle` 只保留在 service/runtime 内部。
+| 界面对象 | 承载内容 |
+| :-- | :-- |
+| 项目视图 | 标识、名称、文件树和配置等展示信息 |
+| 最近项目摘要 | 最近打开项目的名称、时间和内容统计 |
+| 文件树节点 | 项目内相对路径、名称、类型与子节点 |
+| 文件内容视图 | 路径、格式、正文和更新时间 |
+| 项目状态 | 结构检查结果与是否可加载 |
 
----
+打开项目时，核心可以温和补齐缺失的默认结构。界面不需要理解浏览器目录句柄如何持久化，也不需要直接执行项目修复。
 
-## 五、FileService
+文件服务负责文件树、文本读取、手动保存和重新扫描。用户在内容面板中的手动保存与 Agent 工具写入是两条不同路径：前者直接保存文件，后者还会产生确认、工具事件和会话变更记录。
 
-`FileService` 负责项目文件树、文件预览与写入。
+## 四、设置与环境
 
-当前接口：
+设置服务面向**当前小说项目的配置**，提供分组读取与更新，以及模型连接测试和模型列表查询。主对话、Embedding、Rerank、输入补全和联网搜索分别测试；要素管理员的模型与权限覆盖作为独立配置组处理。
 
-```ts
-listFiles(projectId: string): Promise<ProjectFileNodeView[]>
-readFile(projectId: string, path: string): Promise<FileContentView>
-refreshFiles(projectId: string): Promise<ProjectFileNodeView[]>
-writeChapter(projectId: string, fileName: string, content: string): Promise<FileContentView>
-```
+环境服务提供同步的浏览器能力检查，首页据此决定是否允许进入应用。项目服务复用同一环境边界，防止在不支持目录访问的环境中进入项目流程。
 
-建议 view type：
+## 五、Agent 会话契约
 
-```ts
-type ProjectFileNodeView = {
-  name: string
-  path: string
-  kind: 'file' | 'directory'
-  children?: ProjectFileNodeView[]
-}
-
-type FileContentView = {
-  path: string
-  name: string
-  format: 'markdown' | 'json' | 'text'
-  content: string
-  updatedAt: string
-}
-```
-
-注意：
-
-- 当前暂未暴露通用 `writeFile` 给 UI。
-- `writeChapter` 是 Test Lab 调试生成结果落盘用接口。
-- Agent 写入应通过 `AgentService` 事件通知 UI，例如 `file-changed`。
-- 文件路径统一使用项目内相对路径。
-
----
-
-## 六、SettingsService
-
-`SettingsService` 负责项目配置读写和模型连接测试。
-
-当前接口：
-
-```ts
-getConfig(projectId: string): Promise<ProjectConfigView>
-updateConfig(projectId: string, patch: ProjectConfigPatch): Promise<ProjectConfigView>
-readSystemPrompt(projectId: string): Promise<string>
-writeSystemPrompt(projectId: string, content: string): Promise<void>
-testLlm(config: LlmConfigView): Promise<ConnectionTestResultView>
-testEmbedding(config: EmbeddingConfigView): Promise<ConnectionTestResultView>
-testRerank(config: RerankConfigView): Promise<ConnectionTestResultView>
-getGardenerPresets(projectId: string): Promise<GardenerPresetView[]>
-saveGardenerPresets(projectId: string, presets: GardenerPresetView[]): Promise<GardenerPresetView[]>
-```
-
-园丁快捷选项（2026-10 要素整理参数化 W2 新增）：独立于 `novel.config.json`，存项目内 `.novai/gardener-presets.json`，UI 编辑即写盘（文件小不做防抖）；空列表落盘为 `{ "presets": [] }`，读取失败/文件缺失容错为空数组。
-
-```ts
-type GardenerPresetView = {
-  label: string // 列表显示名
-  prompt: string // 勾选后拼进任务消息的文本
-}
-```
-
-建议 UI 使用 patch 更新配置，而不是每次提交完整 `novel.config.json`：
-
-```ts
-type ProjectConfigPatch = Partial<{
-  project: Partial<ProjectInfoView>
-  llm: Partial<LlmConfigView>
-  embedding: Partial<EmbeddingConfigView>
-  rerank: Partial<RerankConfigView>
-  settings: Partial<ProjectSettingsView>
-}>
-```
-
-内部实现仍可以整文件覆盖写回配置文件。
-
-当前已经有 `useSettingsStore()` 封装常用 UI 状态：
-
-```ts
-const settingsStore = useSettingsStore()
-
-await settingsStore.loadSettings(projectId)
-await settingsStore.saveConfig(projectId, patch)
-await settingsStore.saveSystemPrompt(projectId, content)
-await settingsStore.testLlmConfig(config)
-```
-
----
-
-## 七、AgentService
-
-`AgentService` 是最关键的协作接口。UI 不应直接知道 `query()`、`runChatTurn()`、底层 `AgentMessage` 或工具执行细节。
-
-当前接口：
-
-```ts
-deriveTargetFromPath(path?: string | null): ChatTargetView | null
-createSession(projectId: string): Promise<ChatSessionView>
-getSession(projectId: string): Promise<ChatSessionView | null>
-runTurn(input: RunAgentTurnInput): Promise<RunAgentTurnResult>
-```
-
-> [!note] 停止能力（2026-06-17 落地，`8feb3a4`）
-> 原计划单独的 `stopRun()` 函数未采用。停止能力改为「信号透传」形态：`RunAgentTurnInput.signal` 接收 `AbortSignal`，由 app 层（chat store）持有 `AbortController` 并在停止时调用 `abortRun()`。`runTurn` 内部把 signal 透传给 LLM 流式请求与 Agent Loop，停止时抛 `AgentAbortedError` 并保留已生成内容，作为正常结束回退到 `waiting-user`。
->
-> Query Guard / 工具队列策略仍未实现，是 Agent 控制能力的后续延伸方向。
-
-输入类型（已落地）：
-
-```ts
-type RunAgentTurnInput = {
-  projectId: string
-  sessionId?: string
-  instruction: string
-  /** 本轮引用的选中内容，注入到发给模型的 user context */
-  quote?: string
-  activeFilePath?: string
-  /** 用户停止信号，透传到 Agent Loop。 */
-  signal?: AbortSignal
-  onEvent?: (event: AgentUiEvent) => void
-}
-```
-
-建议输出：
-
-```ts
-type RunAgentTurnResult = {
-  projectId: string
-  sessionId: string
-  targetPath?: string
-  changedFiles: ChangedFileView[]
-  session: ChatSessionView
-}
-```
-
-当前文件变更类型：
-
-```ts
-type ChangedFileView =
-  | { type: 'created'; path: string }
-  | { type: 'updated'; path: string }
-  | { type: 'renamed'; fromPath: string; toPath: string }
-  | { type: 'deleted'; path: string; trashPath?: string }
-```
-
-当前限制：
-
-- `changedFiles` 目前由 `agent-service` 根据工具调用和工具结果文本保守推导。
-- 后续更稳的做法是让 core 工具层直接返回结构化变更结果。
-- 写入确认、暂停恢复、停止运行尚未落地。
-
----
-
-## 八、Agent UI 事件协议
-
-UI 最应该依赖的是稳定事件，而不是内部 Agent 实现。
-
-建议先定义如下事件合同：
-
-```ts
-type AgentUiEvent =
-  | { type: 'run-start'; runId: string; sessionId: string }
-  | { type: 'message'; message: ChatMessageView }
-  | { type: 'assistant-delta'; text: string; fullText: string }
-  | { type: 'model-start'; step: number }
-  | { type: 'model-finish'; step: number; toolCallCount: number; finishReason?: string }
-  | { type: 'tool-call'; toolCall: ToolCallView }
-  | { type: 'tool-result'; toolResult: ToolResultView }
-  | { type: 'file-changed'; file: ChangedFileView }
-  | { type: 'confirmation-required'; request: FileChangeConfirmationView }
-  | { type: 'run-error'; error: NovAiError }
-  | { type: 'run-finish'; result: RunAgentTurnResult }
-```
-
-其中部分事件可以先预留：
-
-- `confirmation-required` 等写工具确认机制落地后启用。
-- `file-changed` 在 Agent 写入文件后触发，用于 UI 刷新预览。
-- `model-start/model-finish` 用于展示 Query Step。
-- `tool-call/tool-result` 用于展示工具轨迹。
-
-建议消息 view type：
-
-```ts
-type ChatMessageView =
-  | {
-      id: string
-      role: 'user'
-      kind: 'text'
-      text: string
-      createdAt: string
-    }
-  | {
-      id: string
-      role: 'assistant'
-      kind: 'text' | 'action-summary'
-      text: string
-      targetPath?: string
-      relatedPaths?: string[]
-      createdAt: string
-    }
-  | {
-      id: string
-      role: 'system'
-      kind: 'tool-call' | 'tool-result' | 'context-summary' | 'error'
-      text: string
-      ok?: boolean
-      toolName?: string
-      createdAt: string
-    }
-```
-
-这层可以和当前 `ChatMessage` 一一映射，但不要求完全暴露内部结构。
-
----
-
-## 九、RagService
-
-RAG 当前适合先作为调试和状态接口暴露。等 `RagSearch` 正式进入 Agent Loop 后，UI 主要通过 Agent 事件观察检索过程。
-
-当前接口：
-
-```ts
-inspectIndex(projectId: string): Promise<ProjectIndexMetaView | null>
-rebuildIndex(projectId: string): Promise<IndexBuildResultView>
-runRagDebug(projectId: string, query: string): Promise<{
-  draft: GenerationContextDraftView
-  explanations: RetrievalExplanationView[]
-  recalledCount: number
-}>
-```
-
-落地进度不在本文维护，具体以 [当前进度](../project/当前进度.md) 和 [开发日志](../project/开发日志.md) 为准。
-
----
-
-## 九点五、GenerationService 与 ElementService
-
-> [!warning] GenerationService 已删除(2026-09-20 补丁)
-> `GenerationService` 及其 `streamGeneration` 调试接口已在 Agent Loop 重构 Stage 0(`abfcbb4`)**删除**,相应能力由 `AgentService.enqueueMessage()` + 事件总线 + 会话视图覆盖。本节关于 `GenerationService` 的描述仅作历史参考保留。
->
-> [!warning] ElementService 已删除(2026-10-02 补丁,要素整理参数化 W4)
-> `ElementService`(`previewElementExtraction`/`writeExtractedElements`)已随 `/提取要素` 斜杠命令退役**整体删除**(UI、composable、core 提取器与 writer 全量清理)。要素提取/整理由园丁子智能体承接(主 Agent 经 `DelegateToGardener` 委派);用户入口为 `/整理要素` 参数弹窗(自由文本+快捷选项+章节范围),配套 `SettingsService.getGardenerPresets()/saveGardenerPresets()`(`.novai/gardener-presets.json`)。本节以下描述仅作历史参考保留。
-
-这两组接口主要服务 Test Lab 调试能力。
-
-`GenerationService`(**已删除**,见上方警示):
-
-```ts
-streamGeneration(
-  input: LlmStreamInputView,
-  onEvent: (event: LlmStreamEventView) => void,
-): Promise<string>
-```
-
-`ElementService`(仍存):
-
-```ts
-previewElementExtraction(input: {
-  chapterMarkdown: string
-  chapterPath?: string
-  systemPrompt?: string
-}): Promise<ElementExtractionResultView>
-```
-
-设计定位：
-
-- ~~`streamGeneration` 是单次流式生成调试接口,不是 Agent 主工作流。~~(已删除)
-- 正式创作流程应优先走 `AgentService.enqueueMessage()`(2026-09-20 补丁:原 `runTurn()` 已拆分为 `enqueueMessage` / `updateQueuedMessage` / `stopAgentRun`,见 W4 队列化改造)。
-- `previewElementExtraction` 面向章节要素提取预览，后续要和要素写入协议、用户确认、去重合并与覆盖策略一起完善。
-
-因此接口文档只定义 UI 与 core 的协作边界，不维护 Orama、RAG 或 Agent 工具的具体落地状态。
-
----
-
-## 十、统一错误模型
-
-当前内部多处使用 `throw new Error(message)`。这适合快速开发，但不利于 UI 做稳定交互。
-
-建议 service 层统一转换为结构化错误：
-
-```ts
-type NovAiError = {
-  code: NovAiErrorCode
-  message: string
-  recoverable: boolean
-  detail?: unknown
-}
-
-type NovAiErrorCode =
-  | 'PROJECT_NOT_OPEN'
-  | 'PROJECT_PERMISSION_DENIED'
-  | 'FILE_NOT_FOUND'
-  | 'FILE_WRITE_FAILED'
-  | 'MODEL_CONFIG_MISSING'
-  | 'MODEL_REQUEST_FAILED'
-  | 'TOOL_INPUT_INVALID'
-  | 'TOOL_EXECUTION_FAILED'
-  | 'RAG_INDEX_EMPTY'
-  | 'RAG_REQUEST_FAILED'
-  | 'RUN_ABORTED'
-  | 'UNKNOWN_ERROR'
-```
-
-原则：
-
-- `core` 可以继续抛普通错误。
-- `services` 负责把内部错误转换成 `NovAiError`。
-- UI 根据 `code` 决定展示 toast、弹窗、重试按钮、授权提示或配置入口。
-
----
-
-## 十一、状态归属约定
-
-建议约定：
-
-```txt
-core:
-  负责能力，不负责 UI 展示状态。
-
-services:
-  负责把 core 能力组合成 UI 可用动作，并输出稳定 view type / event。
-
-stores:
-  负责页面状态，例如当前项目、当前文件、消息列表、运行状态、loading、错误展示。
-
-components:
-  负责渲染和用户交互，不直接承载业务流程。
-```
-
-典型调用路径：
-
-```txt
-UI Component
--> Pinia Store action
--> Service
--> Core
--> Service 映射结果 / 事件
--> Store 更新状态
--> UI 重新渲染
-```
-
----
-
-## 十二、落地状态与下一步
-
-当前已完成：
-
-1. 已新增 `packages/core/src/services/types.ts`
-   - 已定义 `ProjectView`
-   - 已定义 `FileContentView`
-   - 已定义 `ChatSessionView`
-   - 已定义 `AgentUiEvent`
-   - 已定义 `NovAiError`
-
-2. 已新增运行时项目注册表
-   - `packages/core/src/services/project-runtime.ts`
-   - 由 service 内部维护 `projectId -> ProjectSnapshot`
-   - UI 不再持有 `FileSystemDirectoryHandle`
-
-3. 已实现 `ProjectService`
-   - 包装创建、打开、恢复、关闭、刷新、检查项目
-   - 统一返回 `ProjectView`
-
-4. 已实现 `FileService`
-   - 包装文件树、文件读取、刷新、章节写入
-
-5. 已实现 `SettingsService`
-   - 包装配置读写、system prompt 读写和模型连接测试
-
-6. 已实现 `AgentService`
-   - 包装 `runChatTurn`
-   - 映射 Agent 内部消息到 `ChatMessageView`
-   - 输出 `file-changed`、`run-finish` 等 UI 事件
-
-7. 已让 Pinia store 调用 service
-   - `projectStore`
-   - `settingsStore`
-   - `chatStore`
-
-8. 已迁移测试页面
-   - `SessionTestView`
-   - `TestLabView`
-   - `packages/app/src/views`、`packages/app/src/stores` 当前不再直接 import `packages/core/src/core/*`
-
-建议下一步：
-
-1. 将 `services/types.ts` 按领域拆分
-   - `project-types.ts`
-   - `agent-types.ts`
-   - `rag-types.ts`
-   - `settings-types.ts`
-   - (2026-09-20 补丁:**仍未做**,在 [当前进度](../project/当前进度.md) 进行中)
-
-2. 补齐结构化错误转换
-   - 当前 `NovAiError` 类型已定义
-   - 但多数 service 仍沿用内部普通 Error 或 store 中的 message 兜底
-   - (2026-09-20 补丁:**仍未做**)
-
-3. ~~补齐 Agent 停止与写入确认~~(2026-09-20 补丁:**已完成**,Agent 控制能力补强 Step 2/3/4 + W1 五档权限 + W2 driver 化停止)
-   - ~~`stopRun`~~
-   - ~~`confirmation-required`~~
-   - ~~写入 diff 预览~~
-   - ~~暂停 / 恢复~~
-
-4. ~~将工具层结构化变更结果上抛到 `AgentService`~~(2026-09-20 补丁:**已完成**,Agent 控制能力补强 Step 1 结构化 FileChange + W3 changeLedger 账本)
-   - ~~取代当前基于工具文本摘要推导 `changedFiles` 的临时方式~~
-
-5. ~~让正式 UI 只依赖 store 或 service~~(2026-09-20 补丁:**已完成**)
-   - ~~前端展示层继续避免直接碰内部实现模块~~
-
----
-
-## 十三、与工具系统升级任务的关系
-
-本接口契约与工具系统升级高度相关，但优先级不同：
-
-- 工具系统升级解决“Agent 能调用哪些工具、工具怎么执行、如何确认写入”。
-- UI 协作接口解决“前端如何稳定使用这些能力”。
-
-两者可能冲突的地方：
-
-- `AgentUiEvent.tool-call`
-- `AgentUiEvent.tool-result`
-- `confirmation-required`
-- `file-changed`
-- `RunAgentTurnResult.changedFiles`
-- `ToolCallView / ToolResultView`
-
-当前工具系统升级已经完成第一轮，`AgentService` 也已经落地第一版。但以下接口仍会继续受工具系统演进影响：
-
-- `ToolCallView`
-- `ToolResultView`
-- `ChangedFileView`
-- `confirmation-required`
-- `file-changed`
-- `RunAgentTurnResult.changedFiles`
-
-因此，UI 可以先使用这些接口做展示，但不要把它们视为最终协议。
-
----
-
-## 十四、一句话结论
-
-NovAI 当前已经开始把 `core` 当作本地后台能力层，把 `services` 当作面向 UI 的稳定接口层。
-
-你可以继续演进 `core`，UI 合作者优先依赖 `stores`，必要时依赖 `services/types.ts`、service 方法和 `AgentUiEvent`。这样双方可以并行开发，减少互相踩代码的概率。
+Agent 服务是创作协作的主入口，负责多会话、角色、消息收件箱、运行生命周期、确认和变更账本。
+
+### 会话与角色
+
+会话按项目持久化，支持列表、创建、切换、历史分页、重命名和删除。界面使用会话视图与摘要，不接触内部模型视图。每个会话属于主智能体或要素管理员。
+
+主智能体和要素管理员都支持直接对话。主智能体发起委派时，服务创建独立的要素管理员会话并驱动任务；主会话只接收最终汇报，完整工具过程保留在委派会话中，之后可以打开继续交流。会话标识同时也是事件路由与确认归属的依据。
+
+### 消息入队与停止
+
+发送消息采用「先入队、再驱动」的异步契约：
+
+1. 服务把指令、可选引用和文件目标快照写入会话收件箱并保存。
+2. 界面立即获得会话标识和最新队列，不等待整轮生成结束。
+3. 后台驱动器逐轮消费消息，持续通过事件汇报进度。
+4. 排队消息按后续轮次处理；插话消息在当前任务的下一步边界处理。
+5. 队列支持编辑、撤回，以及把排队消息改为插话。
+
+停止操作中止当前轮次，保留尚未消费的队列。主会话停止时，进行中的委派也收到停止信号。运行是否结束以服务的运行状态为准，不由某个组件自行推断。
+
+### 事件订阅
+
+服务提供进程内事件订阅，订阅返回取消函数。事件是实时协作协议，不是可重新播放的持久事件流；需要恢复状态时读取会话、队列、确认和账本的当前视图。
+
+| 事件类别 | 传递内容 | 界面用途 |
+| :-- | :-- | :-- |
+| 运行生命周期 | 开始、完成、失败 | 更新运行状态与错误反馈 |
+| 消息 | 完整消息、正文增量、思考增量 | 流式渲染对话 |
+| 工具 | 调用与结果 | 展示执行轨迹 |
+| 文件 | 结构化变更记录 | 刷新文件、变更面板和统计 |
+| 队列 | 当前完整队列快照 | 展示排队与插话 |
+| 确认 | 新请求及当前待确认集合 | 展示确认卡和会话徽标 |
+| 委派会话 | 新会话摘要 | 将会话加入列表并建立归属 |
+
+事件携带会话标识。聊天 store 将普通事件归并到当前会话，同时全局处理确认与委派会话通知，避免后台会话的进展被误写入当前对话。
+
+## 六、写入确认与变更账本
+
+### 确认
+
+工具权限链决定一次写入是否需要用户确认。需要确认时，Agent 暂停对应动作，服务保存待处理请求并发出事件；界面返回接受或拒绝后，原工具调用才继续。
+
+确认预览覆盖新建、编辑、重命名和删除，提供相应的差异、前后路径或回收站信息。请求按会话隔离，因此主智能体与委派会话同时运行时不会互相答复确认。
+
+### 变更账本
+
+成功的文件工具结果直接携带结构化变更，服务将其追加到会话账本。账本随会话保存，不随模型上下文压缩而丢失。
+
+| 变更 | 记录内容 |
+| :-- | :-- |
+| 新建 | 文件路径、新内容与差异 |
+| 编辑 | 文件路径、前后内容与差异 |
+| 重命名 | 原路径与新路径 |
+| 删除 | 原路径、回收站位置与删除统计 |
+
+一轮结束时生成该轮的变更摘要，界面按文件聚合并展示差异；会话视图还提供完整、去重的变更清单。账本中的角色归属用于区分主智能体和要素管理员的写回结果。
+
+## 七、其他服务边界
+
+| 服务 | 向界面提供的能力 | 明确不承担 |
+| :-- | :-- | :-- |
+| 检索 | 索引状态、状态订阅、全量或指定来源重建 | 供组件直接执行语义搜索 |
+| 输入补全 | 可取消的前后文续写流、独立连接测试 | Agent 会话和正文生成 |
+| 要素整理提醒 | 根据章节与要素变化给出提醒、记录已展示状态 | 自动整理或自动修改要素 |
+| 项目运行时 | 核心服务之间共享项目快照 | 作为界面业务状态仓库 |
+
+语义检索是 Agent 的工具行为，界面通过工具事件观察，而不是另建一套前端检索管线。要素整理提醒只把建议交给用户，实际整理由 Agent 完成。
+
+## 八、视图与错误
+
+服务层使用独立视图类型表达项目、文件、设置、会话、消息、队列、确认、变更、索引和环境状态。视图可以映射核心内部结构，但不要求与内部类型一一同构。
+
+错误契约包含错误代码、可读信息、是否可恢复及可选详情，供事件与界面反馈使用。当前仍有部分服务直接抛出底层错误，界面需要保留通用错误兜底，不能假定所有失败都已经细分到稳定错误代码。
+
+## 九、协作不变量
+
+无论内部实现如何调整，以下边界应持续成立：
+
+1. UI 只通过公开服务和视图类型访问核心能力。
+2. 目录句柄、项目快照、模型视图和工具运行时留在核心侧。
+3. 会话与文件事实是核心状态，界面保存其展示副本，不另建业务真相。
+4. Agent 运行采用入队与事件协作，不要求组件等待完整轮次。
+5. 确认按会话归属，文件变更来自结构化工具结果。
+6. 核心引擎不感知 Vue、Pinia 和具体页面。
