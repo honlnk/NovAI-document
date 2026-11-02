@@ -22,7 +22,7 @@
 
 **借鉴参照系从 claude-code 切换为 DeepSeek Harness，原则是「抄内核形状，不抄框架与存储」。**
 
-### 抄的形状（已全部重写进 Agent Loop）
+### 抄的形状（主体已重写进 Agent Loop）
 
 | dsh 形状 | NovAI 落点 |
 | :--- | :--- |
