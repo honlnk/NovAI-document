@@ -63,7 +63,7 @@ dsh read 工具（`packages/fs/tool-fs/src/read.ts`、`read-render.ts`）的三�
 
 - 现在 `assertMutableDocumentPath` 把整个 `.novel/` 一刀切禁读。改为：`.novel/` 仍禁读，**唯独 `.novel/spill/` 放行给 ReadFile**。
 - 实现：`assertMutableDocumentPath` 不接受「可放行子路径」参数，需要新增一个 read 专用的断言（如 `assertReadableDocumentPath`），逻辑 = 「禁 `.novel/` 但放行 `.novel/spill/`」；写路径的 `assertMutableDocumentPath`/`assertWritableDocumentPath` 保持原样（spill 仍**禁止写/改/删**，只能读）。
-- 与 [[待办-写工具权限与novel防护一致性]] 的关系：那边是「CreateFile/EditFile 漏装 `.novel/` 写防护」，这边是「给 ReadFile 的 `.novel/` 读防护开 spill 口子」——**一个是补写防护，一个是开读口子，方向相反、互不冲突**，但改的是同一族断言函数，建议到时一起看，避免两边对 `assertMutableDocumentPath` 各改各的。
+- 与 [[写工具权限与novel防护一致性]] 的关系：那边是「CreateFile/EditFile 漏装 `.novel/` 写防护」，这边是「给 ReadFile 的 `.novel/` 读防护开 spill 口子」——**一个是补写防护，一个是开读口子，方向相反、互不冲突**，但改的是同一族断言函数，建议到时一起看，避免两边对 `assertMutableDocumentPath` 各改各的。
 
 ### 改动 3：spill 省略标记改成「可执行的取回提示」
 
@@ -146,5 +146,5 @@ dsh read 工具（`packages/fs/tool-fs/src/read.ts`、`read-render.ts`）的三�
 ## 关联
 
 - 来源：第六次提交 `3b7a981` 的 review 会话（sess_6a541707），用户判定原方向错误。
-- 与同族断言函数的另一处问题并列但方向相反：[[待办-写工具权限与novel防护一致性]]（那边补「写」防护，这边开「读」口子），实施时建议合并评审 `common.ts`/`path.ts` 的断言族。
+- 与同族断言函数的另一处问题并列但方向相反：[[写工具权限与novel防护一致性]]（那边补「写」防护，这边开「读」口子），实施时建议合并评审 `common.ts`/`path.ts` 的断言族。
 - 同属 review 待修清单：[[待办-文件改动追踪不可靠]]。

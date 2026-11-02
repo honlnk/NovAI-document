@@ -926,10 +926,10 @@ type GetFileChangeHistoryOutput = {
 
 - **Agent Loop 重构(Stage 0-6)**:参考系从 Claude Code 切换到 DeepSeek Harness,落地 ModelView、8 段检查点压缩、范围权限、spill、`agentMaxTurns` 安全阀、流式打字机渲染(见 [Agent Loop 重构开发计划](../plans/Agent%20Loop%20重构开发计划.md))
 - **Agent 控制能力补强(Step 1-6)**:写工具结构化 FileChange、写入前确认 + diff 预览、运行中停止、用户即时工具约束(已删)、system prompt 同会话刷新(见 [Agent 控制能力补强计划](../plans/Agent控制能力补强计划.md))
-- **队列与插话(W2-W6)**:turn/step 分层循环、双队列收件箱(next-turn 排队 / next-step 插话)、session driver 化、`agentMaxTurns` 默认 0 不限、QueueDock UI(见 [待办-Agent循环升级-队列与插话](../plans/待办-Agent循环升级-队列与插话.md))
-- **文件改动追踪(W3-W6)**:changeLedger append-only 账本、写工具 output 带 diff、change-summary 结构化消息、GetFileChangeHistory 只读工具(见 [待办-文件改动追踪与聊天区重设计](../plans/待办-文件改动追踪与聊天区重设计.md))
-- **写工具权限五档(W1)**:`permission.ts` 五档(review/chapter/material/chapter-material/full)+ `.novel/` 防护(见 [待办-写工具权限与novel防护一致性](../plans/待办-写工具权限与novel防护一致性.md))
-- **spill 重设计(W1)**:ReadFile 三道闸(2000 行/2000 单行字符/50KB 字节)、`.novel/spill/` 可读化、7 天清理(见 [待办-spill重设计-让溢出内容可取回](../plans/待办-spill重设计-让溢出内容可取回.md))
+- **队列与插话(W2-W6)**:turn/step 分层循环、双队列收件箱(next-turn 排队 / next-step 插话)、session driver 化、`agentMaxTurns` 默认 0 不限、QueueDock UI(见 [Agent循环升级-队列与插话](../plans/Agent循环升级-队列与插话.md))
+- **文件改动追踪(W3-W6)**:changeLedger append-only 账本、写工具 output 带 diff、change-summary 结构化消息、GetFileChangeHistory 只读工具(见 [文件改动追踪与聊天区重设计](../plans/文件改动追踪与聊天区重设计.md))
+- **写工具权限五档(W1)**:`permission.ts` 五档(review/chapter/material/chapter-material/full)+ `.novel/` 防护(见 [写工具权限与novel防护一致性](../plans/写工具权限与novel防护一致性.md))
+- **spill 重设计(W1)**:ReadFile 三道闸(2000 行/2000 单行字符/50KB 字节)、`.novel/spill/` 可读化、7 天清理(见 [spill重设计-让溢出内容可取回](../plans/spill重设计-让溢出内容可取回.md))
 - **`RagSearch` 已接入 Agent Loop**(模型可主动调用),**要素提取链路已落地**(LLM 唯一路径)
 
 ### 14.2 下一步建议(原始,已被后续工作覆盖)
