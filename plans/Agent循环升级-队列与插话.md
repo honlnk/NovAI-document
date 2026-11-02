@@ -152,7 +152,7 @@ query() 主循环（伪代码）：
 - **interrupted 结局（崩溃修复补写）**：dsh 靠事件溯源发现未闭合 turn；我们无事件溯源，会话恢复语义维持现状。
 - **事件溯源收件箱**（`agent/inbox/spliced` 事件日志）：普通字段随会话 JSON 落盘即可。
 - **busyEnter 设置项**（dsh 可配置 Enter 繁忙行为）：固定 Enter=排队、Ctrl/Cmd+Enter=插话；有用户反馈再加。
-- **工具 `concludesTurn` 标记**：我们的工具集没有「任务完成」语义的工具（无 todo_write/goal），没有生产者，不做。
+- **工具 `concludesTurn` 标记**：本计划没有任务完成语义的工具，不做。后续已放弃多步任务工具；创作计划板的状态不表示 Agent 应结束或自动推进当前轮次，也不因此新增该标记。
 - **TurnNavigator 左侧导轨、TurnTail token 用量页脚**：dsh 有但无对应需求。
 - 多条 steer 合并：dsh 不合并，各成独立 user 消息，照抄。
 

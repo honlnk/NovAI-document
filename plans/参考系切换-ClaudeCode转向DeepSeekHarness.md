@@ -66,7 +66,7 @@ dsh 把 claude-code 的「权限模式」拆成**两个独立旋钮**：SandboxM
 - **Loop 形状**：turn/step 双层循环 + inbox 输入队列（followup/steer/inject 三档输入语义）+ per-phase AbortController + abort 时落半成品 assistant 消息（保留已生成内容）。steer（中途插话改方向）/inject（后台注入资料）对写作场景天然契合。
 - **LLM 抽象**：`LlmAdapter` 只强制实现一个 `stream(options)` 方法，统一 StreamChunk 词汇，错误归一化为 finish chunk；重试做成 loop 外的事件监听者而非写死在循环里。
 - **工具定义**：`defineTool` 强制 `output.schema` + `render`（机读结果与模型可读内容分离）+ `isConcurrencySafe` 并行分类。
-- **todo_write**：全量列表替换语义，模型靠自己历史里的调用参数回看列表，零额外注入。尚未形成独立计划。
+- **todo_write**：全量列表替换语义，模型靠自己历史里的调用参数回看列表，零额外注入。该机制已放弃，不进入 NovAI；长期创作意图由项目级计划板承接。
 - **主动提问工具（AskUserQuestion）**：模型主动向用户提问（选项 + 多选），是「问用户选哪条剧情线」的天然载体。后续设计见 [Agent 主动提问工具计划](Agent主动提问工具计划.md)。
 
 ## 四、决策：只抄形状，不抄存储
@@ -115,7 +115,7 @@ NovAI 现有设计的主体（见下）与 claude-code 无关，换参考系后*
 | compaction 算法 | `compaction/*` | 按 3.1 重写，存储用区间替换表 |
 | spill 模式 | `spill/spill-policy` | 强烈建议抄，~200 行 |
 | 范围权限 + 单次授权 | `interaction/user-approval` + `sandbox` | 抄词表与流程，~200 行 |
-| 多步任务工具 / 主动提问工具 | `todo/tool-todo`、`interaction/tool-ask-user` | 分别设计；提问见独立计划 |
+| 多步任务工具 / 主动提问工具 | `todo/tool-todo`、`interaction/tool-ask-user` | 任务工具已放弃；提问见独立计划 |
 | defineTool（schema + render 分离） | `core/tools` | 抄形态，校验用 zod |
 
 **明确不抄**：Cordis 框架、事件溯源存储、Typert/WebSocket 传输层、多协议适配器体系、内核沙箱/E2B、subagent 多智能体（第一阶段非目标仍成立）。
@@ -125,4 +125,4 @@ NovAI 现有设计的主体（见下）与 claude-code 无关，换参考系后*
 
 ## 执行状态（2026-09-14）
 
-决策已落地为 [0005 决策记录](../decisions/0005-参考系切换至DeepSeekHarness.md)，形状清单中的 compaction / spill / 范围权限 / turn-step loop / StreamChunk 词汇已重写进 Agent Loop（Stage 0-6 全部完成并验收）。「明确不抄」清单全程未引入。todo_write 与 defineTool 形态未在本期范围；todo_write 尚未形成独立计划，defineTool 不在当前施工范围。ask_user_question 已从原 Stage 7 拆出独立的 [Agent 主动提问工具计划](Agent主动提问工具计划.md)，截至 2026-11-03 已形成独立计划、尚未开工。主体执行细节见 [Agent Loop 重构开发计划](Agent%20Loop%20重构开发计划.md) 文末「执行结果」。
+决策已落地为 [0005 决策记录](../decisions/0005-参考系切换至DeepSeekHarness.md)，形状清单中的 compaction / spill / 范围权限 / turn-step loop / StreamChunk 词汇已重写进 Agent Loop（Stage 0-6 全部完成并验收）。「明确不抄」清单全程未引入。todo_write 已于 2026-11-03 明确放弃，defineTool 不在当前施工范围；长期创作意图改由 [创作计划板施工计划](创作计划板施工计划.md) 承接。ask_user_question 已从原 Stage 7 拆出独立的 [Agent 主动提问工具计划](Agent主动提问工具计划.md)，截至 2026-11-03 已形成独立计划、尚未开工。主体执行细节见 [Agent Loop 重构开发计划](Agent%20Loop%20重构开发计划.md) 文末「执行结果」。
