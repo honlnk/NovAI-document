@@ -3,8 +3,68 @@
 ## 文档状态
 
 - 记录日期：2026-11-03。
-- 当前状态：**已形成独立计划，尚未开工**。
+- 当前状态：**已完成（功能施工与自动化门禁全部通过，已并入主线）**。
 - 本文档是该功能的独立设计与施工依据。动工前须获得用户批准；开工后将状态改为「进行中」，按阶段记录验收、偏差和提交信息，完成后改为「已完成」。
+
+## 施工日志
+
+### 第一阶段：工具与会话等待闭环（2026-11-03 完成）
+
+**落地内容**
+
+- 工具本体 `packages/core/src/core/agent/ask-user-question.ts`：输入校验（问题非空、标签非空不重复、候选项上限 6）、`AskUserQuestionHandler` 回调契约、结局枚举（answered/cancelled）、工具 schema 与结果格式化（取消时指引模型不依赖答案继续）。
+- 会话层组装（非 core 注册表）：`RoleToolContext.askUser` 新增回调位，主角色 `createTools` 装配 `AskUserQuestion`，要素管理员白名单不装（roles.ts）；`ChatTurnInput.askUser` 透传（types/chat.ts）。
+- 工具名联合扩展四处：`AgentToolName`、`ChatToolName`、`ToolNameView`、`isAgentToolName`。
+- `ToolRuntime` 新增 `toolCallId`（tool-execution.ts 注入）：提问工具用它把挂起请求与模型侧 tool-call 关联。
+- service 层提问注册表（仿确认链，agent-service.ts）：`requestQuestion`（注册 + 推提问卡消息 + 事件 `question-required` / `questions-updated` + 问题提出即落盘）、`respondQuestion`（空回答/候选项外标签校验，答案原位补全卡片后 resolve）、`skipQuestion`、`cancelPendingSessionQuestions`（停止/删除/出错时按取消 resolve）。
+- 新增消息类型 `AskUserQuestionMessage`（kind: ask-user-question，answer 原位补全、随会话落盘）及对应 `ChatMessageView` 分支；旧会话无此类型按普通历史读取，不迁移。
+- 主 Agent system prompt 工具规则段补一条提问工具使用说明（prompt.ts）。
+- 端到端测试 `agent-service.ask-user-question.test.ts`（12 例）：单选、多选+补充并存、纯文本、空回答拒绝、候选项外标签拒绝、跳过、停止（取消+不续跑+aborted 收尾）、重复回答静默无效、切换会话后按 questionId 路由、非法参数回灌不中断、等待不自动超时、要素管理员直聊工具面无提问工具。
+
+**门禁**：全量测试 616/616 通过；全项目 typecheck 通过。
+
+**偏差与取舍（对照「实现方向」）**
+
+1. 提问卡消息由 service 层 `requestQuestion` 推送，而非 core 的 session.ts 显示层推送点。原因：(a) questionId 与挂起注册表在 service 层自洽关联；(b) 校验失败的提问调用也会发 tool-call 事件，在事件上推卡会留下不可回答的孤儿卡。卡片位置仍在提问工具行之后、工具结果之前，与计划「交互设计」一致。
+2. 「错误会话不能回答」以 questionId 全局唯一实现：回答按 questionId 路由（不看激活会话），过期/未知 questionId 静默无效——测试覆盖了切走激活位后原会话问题仍可回答、收敛后重复提交无效两向。
+3. 停止路径复用 run-finish 而非 run-error：提问按取消 resolve 后工具结果正常回灌，驱动在下一个 step 边界检测 abort 优雅收尾（aborted change-summary），符合「提问 → 停止 → 不再继续」。
+
+### 第二阶段：聊天卡片与输入协作（2026-11-03 完成）
+
+**落地内容**
+
+- `stores/chat.ts`：提问等待层——`pendingQuestionsBySession` 按会话路由（仿确认链 Map），`question-required` / `questions-updated` 事件同步，`sessionsWithPendingQuestions` 徽标集合；作答草稿（`questionSelection` 保持候选项顺序、`questionText`）、`toggleQuestionOption`（单选替换/多选切换并按候选项顺序稳定排序）、`submitQuestionAnswer`（卡片与输入框改道共用，失败不改等待态、错误进状态栏）、`skipCurrentQuestion`。
+- `AskUserQuestionCard.vue`：独立提问卡（blue 中性样式，与 amber 写确认区分），三态——可交互（单选/多选/补充文本/提交/跳过）、只读已作答（所选 + 补充 + 跳过说明）、等待已中断（不可提交，提示继续发消息）；经 `MessageItem.vue` 独立分支渲染，永不折叠进工具过程组。
+- `ChatPanel.vue`：等待期间输入语义改道——`handleSend` 检测 `pendingQuestion` 时把输入作为自由文本回答提交（与卡片所选合并，不产生新用户轮次），失败回填草稿；占位提示、发送按钮「提交回答」态；等待期间隐藏插话按钮（Enter 语义已是提交回答）。
+- 会话列表「待回答」徽标：`ConversationList.vue` 蓝色徽标（amber 待确认旁），`CategoryPanel.vue` / `ProjectView.vue` 透传 `pendingQuestionIds`。
+- `chat.test.ts` 新增 4 例：提问按会话路由（非激活只点徽标、激活进提问位并重置草稿与状态栏）、候选项选择（单选替换/多选顺序完整集合）、提交回答（合并提交 + 失败保等待态）、跳过问题。
+
+**门禁**：全量测试 620/620 通过；全项目 typecheck 通过；`pnpm build` 通过。
+
+**偏差与取舍（对照本阶段门禁）**
+
+1. **真机验收未执行（用户决定跳过）**：常驻 dev server（5173）服务主仓检出，本任务改动在 worktree 分支，二者不可兼得；用户选择跳过真机验收。剧情选择、自由补充、多选、跳过、切换会话后回答、停止、刷新、排队后续处理等真机清单全部记为**未验证项**，留待合并后由用户验收或在主检出复跑。代码层已由 store 测试与 core 端到端测试覆盖对应行为分支。
+
+### 第三阶段：回归与结项（2026-11-04 完成）
+
+**落地内容**
+
+- 四协议回归夹具 `packages/core/src/core/llm/protocol/ask-user-question-protocol.test.ts`（4 例，每协议一段三拍：工具定义序列化 → 线上工具调用解析 → 作答回传）。工具定义与回灌文本取自真实工具的 schema 与 formatResult（不手抄）。openai：tools 直传、流式 tool_calls、`role:'tool'` 回传；openai-responses：扁平化 tools、`output_item.done` 收集、`function_call_output` 回传；anthropic：`input_schema` 形态、tool_use 流式块、user 轮 tool_result 回传；gemini：functionDeclarations + schema 净化（嵌套 additionalProperties 剥除、label 必填保留）、functionCall/functionResponse 回传。
+- 角色边界回归 `agent-service.ask-user-question.test.ts` 新增「提问与写确认并存」端到端：同一主会话先提问再写文件——工具面两者并存、确认链只被 CreateFile 触发一次（提问从不产生确认卡）、改动账本只含文件写入（提问零变更）、提问卡答案完整保留。既有覆盖继续生效：roles.test.ts 工具面断言（主角色有/要素管理员无）、要素管理员直聊工具面无提问工具（e2e）、委派与确认链既有测试全量通过。
+- 文档收口：UI 协作接口契约设计（「主动提问」小节、事件表提问行、视图类型、协作不变量第 5 条）、当前进度（工作台交互与 Agent 边界各一条）、本计划状态改为已完成。
+
+**门禁**：全量测试 625/625 通过（第三阶段新增 5 例）；全项目 typecheck 通过。
+
+**未覆盖项（真实供应商）**
+
+- 四协议均以协议夹具（fetch 假端点）验证，未打任何真实供应商端点：DeepSeek/SiliconFlow（openai-chat）、OpenAI（openai-responses）、Anthropic、Google Gemini 全部属于「线格式已验证、真实服务未回归」。真实端点回归依赖各供应商可用 key，留待用户日常使用观察。
+- 真机验收按第二阶段记录跳过（用户决定）。
+
+**提交记录**
+
+- 核心工具闭环（第一阶段）：`b2f42bb` feat(project): Agent 主动提问工具——工具与会话等待闭环（第一阶段）。
+- 界面协作（第二阶段）：`e3cbdf5` feat(app): Agent 主动提问——提问卡片、输入作答与待回答徽标（第二阶段）。
+- 第三阶段回归与文档随结项提交（含 docs 子模块先行），提交哈希在获准提交后由会话汇报补记。
 
 ## 背景
 
