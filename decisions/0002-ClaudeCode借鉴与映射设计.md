@@ -171,7 +171,7 @@ Claude Code 中通过 Bash 完成的常见能力，在 NovAI 中应拆成受控�
 - `find / Glob` 场景由 `FindFiles` 承担。
 - `rm` 场景由 `DeleteFile` 承担，并移入 `.novel/trash`。
 - `mv` 场景由 `RenameFile` 承担。
-- `grep / rg` 场景未来由 `RagSearch` 承担。
+- `grep / rg` 场景未来由 `RagSearch` 承担。（**2026-11-07 修订**：`grep` 场景已由专用 `SearchFiles` 工具承担——字面/正则内容搜索、行号与上下文、超限溢出可取回；`RagSearch` 专注语义检索。见 [传统工具升级与内容搜索补齐计划](../plans/传统工具升级与内容搜索补齐计划.md)。）
 
 这样可以保留 Claude Code 的工具化工作流，同时避免把通用系统命令权限暴露给小说写作 Agent。
 
