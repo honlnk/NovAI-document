@@ -112,6 +112,7 @@ IAB 里 Playwright 合成点击（`locator.click()`，含 `force: true`）会超
 | 2026-10-23 | 要素召回渐进式披露 W2–W4 真机验证（0007） | 全过；目录 reminder 落 messages[1]（`agent_messages_debug` 证据）、写场景先 LoadElements(4 要素)、索引重建仅 plots/timeline 2 文档、「魏征是谁」走 LoadElements / 绢商案走 RagSearch；真实项目 plots/timeline 为空，OPFS 副本补种各 1 文件；种子缺 `.novel/manifest.json` 致恢复卡住，手工补写 |
 | 2026-11-03 | 创作计划板二/三阶段真机验收 + 四阶段回归 | 全过；看板手动操作全链路（建/编/拖/删/回收站/冲突/重开恢复/外部修改），真实模型会话五工具全走通（素材档 Create/Delete 弹卡、Update 免确认、拒绝路径），回归三分类无泄漏；真机抓到窄屏看板溢出（缺 `min-w-0`）当场修复；新环境 `recordsUpdated: 0` 需手工建 `recent-projects` 两条记录（key=last-opened 与 project-&lt;id&gt;，projectId 取 manifest）；本轮 AGENTS.md 已改为允许端口空时临时起 dev server |
 | 2026-11-06 | 创作计划板交互优化第三阶段整链验收 | 全过；新建抽屉三态（提交/失败保留/成功转预览）、改名落盘与重开项目找回、分组高亮同步、已搁置筛选、保存→自动回预览（真机发现缺口当场修复）、删除两步确认进回收站、MD 主题回归；真机抓到两个问题当场修复：新建文件名缺可读计划名段（`identity.ts` 未接新格式）、保存成功不回预览态（`detail-mode.ts` 状态机）；窄视口长 URL 会把预览区撑出横向滚动（内容可滚读，记已知瑕疵）；HMR 编辑 core 源会整页重置视图（数据不丢）；`build-seed.sh` 缺 `plans/` 清单需手工补种 |
+| 2026-11-06 | 计划页工作区布局统一计划第二阶段真机验收 | 全过；跨分类面板归属/恢复、看板三入口选中态一致、计划↔文件草稿往返不串稿、保存回预览、改名文件名同步、冲突双分支（重新读取/保留草稿）、两步删除进回收站、重开数据一致、四视口（1440/1280/1024/375）与键盘验收；真机抓到四个问题当场修复：文件草稿跨分类丢失（ProjectView v-if 改 v-show 保挂载）、改名与正文草稿并存时正文首行不同步（app saveCard 接 replacePlanTitleLine 组合）、移动端抽屉宽度不收敛致保存按钮屏外（ContentPanel 加 `max-lg:max-w-full`）、看板卡片键盘不可达（article 加 tabindex+Enter/Space）；发现 activeFile 一次无法复现的重置（疑激活异步竞态）；清理时确认 OPFS 与测试记录均可全部清除 |
 
 ## 已知限制追加（2026-10-23）
 
