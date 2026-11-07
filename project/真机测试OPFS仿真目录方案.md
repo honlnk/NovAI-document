@@ -107,6 +107,7 @@ IAB 里 Playwright 合成点击（`locator.click()`，含 `force: true`）会超
 
 | 日期 | 任务 | 结果 |
 | :-- | :-- | :-- |
+| 2026-11-07 | 内部文件屏蔽单一来源与工具不可见化 W3 真机验收 | 全过；根目录列表只见 4 个目录（无 novel.config.json/.novel/.novai）、直接要求读配置撞教学文案后模型不再变体重试而用上下文作答（模型/项目/默认目标）并请用户自查、根目录内容搜 deepseek（配置内 4 处）零匹配零泄漏；本浏览器档案无历史记录可换柄（recordsUpdated: 0）——手工按 `LastProjectRecord` 结构插入 last-opened + project-{projectId}（projectId 取自种子 `.novel/manifest.json`）后恢复流程照常；用完即清（记录 2 条 + OPFS 7 项 + 种子删除） |
 | 2026-10-20 | 要素管理员升级 W4 真机回归（十验收点） | 全过；验收点 5 按计划降级单测；种子注入 gardener 旧块验证迁移 |
 | 2026-10-22 | 角色注册机制 W4 真机回归（三链路） | 全过；主写作/委派（双委派并发确认）/直聊+续聊/分组/确认徽标；真机暴露 session-created 列表刷新竞态并修复（`f968531`） |
 | 2026-10-23 | 要素召回渐进式披露 W2–W4 真机验证（0007） | 全过；目录 reminder 落 messages[1]（`agent_messages_debug` 证据）、写场景先 LoadElements(4 要素)、索引重建仅 plots/timeline 2 文档、「魏征是谁」走 LoadElements / 绢商案走 RagSearch；真实项目 plots/timeline 为空，OPFS 副本补种各 1 文件；种子缺 `.novel/manifest.json` 致恢复卡住，手工补写 |
