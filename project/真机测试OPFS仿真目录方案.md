@@ -137,3 +137,4 @@ IAB 里 Playwright 合成点击（`locator.click()`，含 `force: true`）会超
 
 - **IAB 偶发整页重载会杀掉内存中的运行链**（原因未定位，怀疑渲染进程被回收）：表现为运行中会话停在「排队中」、待确认清空、runStatus 归零；磁盘状态完好，重发指令即可续跑（被杀轮次的排队消息在下一轮被消费，主智能体可能连发两次委派）。真机回归遇到「会话莫名没跑」先怀疑这个，别急着改产品代码。
 - IAB 里 Playwright 合成 click 对 Vue 组件常不生效，用 `tab.playwright.evaluate` 里 `element.click()`；Lexical 输入框必须走 CUA 坐标点击 + `cua.type`（execCommand 无效）；ActivityBar 分类按钮的 `title` 属性由悬停 tooltip 机制填充（平时为空），稳定选择器是 `nav button[aria-label="对话"]`。
+| 2026-11-08 | 交互优化阶段4真机验收（确认迁右侧面板+输入区接管） | 全过；真实模型双编辑确认逐项审阅（同意落盘/拒绝不写/拒后重试再同意）、去审阅离开返回 diff 完好、提问接管选项作答+卡片只读化、重命名接管 Escape 拒绝磁盘未动、挂起确认时停止收敛、后台会话不串扰切回恢复、375 全宽抽屉、全库清单结构不变（仅两处已同意替换）；真机抓到两个接线缺陷当场修复（未开文件时去审阅打不开——workspacePanel 覆盖条件放宽 kind null、头部开关在确认态不生效——prop 改传实际可见性+开关分流离开）；本轮新环境照 2026-11-03 经验手工建 last-opened 与 project-&lt;id&gt; 两条记录后恢复照常；cua Enter 物理键盘不可达页面（既有 IAB 限制），handler 逻辑以合成 KeyboardEvent 验证；用完即清（记录 2 条 + OPFS 7 项 + 种子删除） |
