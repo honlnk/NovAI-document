@@ -121,8 +121,8 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 - [x] `listSkills`（含诊断归属）、`createBlankSkill`、`scanImportSource`、`importSkills`、`deleteSkill` 及单测（含无 `skills/`、broken、重名、单技能与合集导入、缺 SKILL.md 导入）。
 
 ### 阶段 1：技能分类与列表
-- [ ] 新增分类与导航入口；SkillList 展示、展开清单、点开文件走现有详情、broken/warning 展示、空状态、删除二次确认。
-- [ ] 组件测试：broken 与 warning 渲染、脚本不可点、删除确认。
+- [x] 新增分类与导航入口；SkillList 展示、展开清单、点开文件走现有详情、broken/warning 展示、空状态、删除二次确认。
+- [x] 组件测试：broken 与 warning 渲染、脚本不可点、删除确认。
 
 ### 阶段 2：获取入口
 - [ ] 新建空白技能（命名对话框 + 模板 + 自动打开）、导入（目录选择器 + 单技能直接导入 / 合集勾选对话框）、让 AI 写（预填输入框）。
@@ -184,4 +184,12 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 - 实现决策：broken 的 `reason` 按诊断码映射为「人话 + 修复动作」（如 skill_missing_description →「缺少描述，AI 看不到这个技能。打开 SKILL.md 补上 description 即可」），不复用发现层面向开发者的 message（skill_read_failed 例外，保留原始错误信息）。
 - 实现决策：导入复制跳过点开头条目（.DS_Store 等）——发现与清单层都不见它们，复制只浪费空间；「整体复制」语义按「AI 可见的包内容」执行。文件按二进制流复制（脚本原样、不解析）。
 - 实现决策：删除用 `removeEntry(name, { recursive: true })` 整夹直删（不进回收站，决策 9「不可撤销」）；NotFoundError 抛 `SkillNotFoundError` 提示刷新，不静默幂等成功（避免掩盖删错名）。
+
+### 2026-11-22 阶段 1：技能分类与列表
+
+- 落地：`Category` 加 `skill`（workspace-state 合法值同步）；ActivityBar 技能入口排提示词后、计划前（决策 3），图标注册表新增 `sparkles`（Lucide Sparkles）；`stores/skill.ts`（加载代次守卫 + markStale 标脏重算通道）；`components/category/SkillList.vue`（技能行/展开清单/文件大小、warning 标记悬停、broken 灰显 + 人话原因 + 打开修复、删除二次确认、搜索框 >8 个出现、空状态说明）；CategoryPanel/ProjectView 接线（进分类加载、切项目 reset、文件树变化标脏、刷新入口）。
+- SkillList 组件测试 9 项（含删除成功关闭/失败留框、脚本灰显不可点、搜索过滤、空状态）；全量 1761 + 组件 256 + typecheck 全绿。
+- 实现决策：删除动作放 skill store（`removeSkill`：删盘 → `projectStore.refreshTree()` 同一刷新通道 → 强制重算；失败也重算对齐磁盘并把错误回填对话框）——初版设计的「组件 ref 回报桥」跨 CategoryPanel 转发 expose 过于绕，改为组件直调 store，与 chat store 内使用 project store 的先例一致。
+- 实现决策：「AI 改技能后列表同步」用 markStale 标脏（文件树变化高频、O(1)），回到技能分类或点刷新时才真扫描；不在每次文件树变化时直接重扫。
+- 实现决策：搜索框随列表主体在阶段 1 落地（决策 11 头部规格的一部分）；空状态文案先给说明文字，三个获取入口按钮归阶段 2（获取入口是一个完整逻辑单元，避免阶段 1 提交里出现点了没反应的按钮）。
 
