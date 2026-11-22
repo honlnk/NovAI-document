@@ -129,8 +129,8 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 - [ ] 真机：导入一个带 references 与脚本的技能包；导入一个含多个技能的合集（含一个同名冲突）；AI 新建技能批准链（依赖确认卡修复）。
 
 ### 阶段 3：`#技能`
-- [ ] `#` 弹层、标签着色、发送展开与 displayLabel、排队编辑重推导。
-- [ ] 测试：展开文案、去重、与斜杠命令和 `@` 大纲共存、名单外 `#X` 不展开、`# 标题` 不触发、气泡显示原草稿。
+- [x] `#` 弹层、标签着色、发送展开与 displayLabel、排队编辑重推导。
+- [x] 测试：展开文案、去重、与斜杠命令和 `@` 大纲共存、名单外 `#X` 不展开、`# 标题` 不触发、气泡显示原草稿。
 
 ### 阶段 4：工具行与集成验收
 - [ ] LoadSkill 专属摘要。
@@ -199,4 +199,11 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 - 新增测试：SkillImportDialog.spec 4 项（勾选/全选/同名不可勾、结果态逐个可见、失败可重试）、SkillList.spec 补 5 项（新建成功/重名、合集导入弹框与执行、单技能直接导入、让 AI 写 emit、空状态入口）。全量 1761 + 组件 263 + typecheck 全绿。
 - 实现决策：合集对话框可选项默认全选（「一次导入整套技能集」是主路径，ZCode 同款）；导入结果在对话框内切「结果态」逐项展示（「导入结果逐个可见」的直译），不只用 toast 汇总。
 - 真机三项（导入技能包/合集含同名冲突/AI 新建批准链）待与阶段 4 真机合并执行（同一浏览器会话一次做完，结果记入阶段 4 日志）。
+
+### 2026-11-22 阶段 3：`#技能` 点名
+
+- 落地：`constants/skill-mention.ts`（collectSkillMentions / expandSkillMentions——token 口径与 text-ref 同构：行首或空白后、token 后须空白或结尾、名单精确命中、同名去重保序；命中汇总为一句「（作者点名使用技能：X、Y。请先用 LoadSkill 逐个加载，再按技能方法完成本条请求。）」追加到斜杠展开结果之后，无命中原样返回）；`text-ref.ts` 加 `skill` kind（TOKEN_RE 扩为 `/@#` 三触发符，`# 标题` 因 # 后空格、`##` 因第二个 # 天然不触发）；`SkillCommandPopover.vue`（名称/displayName/描述过滤、无技能与无匹配两档空态、moveUp/moveDown/confirm expose）；ChatPanel 集成（弹层检测与 @大纲/斜杠互斥、选中后 `#技能名 ` 尾空格收口 token、发送展开组合 slash→skill、displayLabel 判定不变、keydown 导航、FIM 补全互斥、技能列表变化重扫高亮）；QueueDock 补 `skillNames` props，commitEdit 按同序重展开；ProjectView 传 `:skills` 并在项目打开时预载技能列表（用户未进过技能分类时 store 为空会让弹层误显「还没有技能」）。
+- 测试：skill-mention.test 9 项（命中/去重/顺序、中文标点边界、名单外、`# 标题`、`##`、与 @/斜杠共存、无命中原样、组合顺序、同技能多次只提示一次）；text-ref.test 补 skill 触发与三触发符共存；新增 SkillCommandPopover.spec 6 项（筛选、两档空态、点击选中、键盘导航与循环）与 QueueDock.spec 3 项（点名重展开 + displayLabel、名单外原样、slash+skill 组合）。全量 139 文件 1774 用例 + 组件 35 文件 275 用例 + typecheck 全绿。
+- 实现决策：# 弹层恒开含空态（无技能显示「还没有技能，可在左侧「技能」中新建或导入」），与 @大纲弹层「无大纲不开」不同——§3.3 的空态引导本身是获取入口，按计划执行。
+- 实现决策：技能名单经 ChatPanel 内 computed `skillNames` 单一投影（发送展开 / QueueDock 重推导 / 词表三处共用）；项目打开预载走 store `refresh` 幂等通道（与进分类加载共用，不重复扫描），失败静默（分类入口与刷新按钮仍有重试通道）。
 
