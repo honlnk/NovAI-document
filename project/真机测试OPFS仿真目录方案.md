@@ -107,6 +107,7 @@ IAB 里 Playwright 合成点击（`locator.click()`，含 `force: true`）会超
 
 | 日期 | 任务 | 结果 |
 | :-- | :-- | :-- |
+| 2026-11-22 | 技能包 UI/UX 施工计划阶段 2+4 真机验收（导入单技能/合集同名冲突/AI 新建批准链/#点名链路） | 全过。①本轮 IndexedDB 为全新环境（recordsUpdated=0），手工建 last-opened + project-\<id\> 两条记录（handle 挂 OPFS 根）后「恢复项目」照常；②导入源种在 OPFS 根顶层（`去AI味/` 单技能带 references+脚本、`_技能合集/` 三子文件夹含同名项），mock `window.showDirectoryPicker` 返回 `getDirectoryHandle` 真句柄——picker 弹窗本身换掉，扫描/勾选/复制/冲突判定全真；③#点名链路：真模型（deepseek）按点名句先 LoadSkill 再干活，回复明确引用技能词表内容，工具行两条新文案（加载技能 · 去AI味 / 读取技能文件 · 去AI味 / references/替换词表.md）、气泡只显原草稿；④AI 新建批准链：权限档切「章节内容」后 CreateFile skills/场景收束/SKILL.md 弹确认卡（聊天条+右侧面板），同意+刷新后列表 3→4。**验收抓到缺陷（当场修复）：replaceTokenBeforeCaret 边界启发式 `startsWith('/')||startsWith('@')` 只认旧触发符，# 行首选中被误留触发符产生 `##去AI味 ` 双井号——改为「match 以空白开头才留边界」与触发符解耦（fix 8aa036e，含回归测试）**。Lexical 输入用 locator.type（CJK 可用）；弹层选中走 data-testid。用完即清（OPFS 根 10 项 + 记录 2 条 + 含密钥种子删除，真实项目零改动，未动用户常驻 5173） |
 | 2026-11-07 | 内部文件屏蔽单一来源与工具不可见化 W3 真机验收 | 全过；根目录列表只见 4 个目录（无 novel.config.json/.novel/.novai）、直接要求读配置撞教学文案后模型不再变体重试而用上下文作答（模型/项目/默认目标）并请用户自查、根目录内容搜 deepseek（配置内 4 处）零匹配零泄漏；本浏览器档案无历史记录可换柄（recordsUpdated: 0）——手工按 `LastProjectRecord` 结构插入 last-opened + project-{projectId}（projectId 取自种子 `.novel/manifest.json`）后恢复流程照常；用完即清（记录 2 条 + OPFS 7 项 + 种子删除） |
 | 2026-10-20 | 要素管理员升级 W4 真机回归（十验收点） | 全过；验收点 5 按计划降级单测；种子注入 gardener 旧块验证迁移 |
 | 2026-10-22 | 角色注册机制 W4 真机回归（三链路） | 全过；主写作/委派（双委派并发确认）/直聊+续聊/分组/确认徽标；真机暴露 session-created 列表刷新竞态并修复（`f968531`） |
