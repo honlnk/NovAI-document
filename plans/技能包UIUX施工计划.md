@@ -118,7 +118,7 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 ## 五、分阶段施工与门禁
 
 ### 阶段 0：技能服务
-- [ ] `listSkills`（含诊断归属）、`createBlankSkill`、`scanImportSource`、`importSkills`、`deleteSkill` 及单测（含无 `skills/`、broken、重名、单技能与合集导入、缺 SKILL.md 导入）。
+- [x] `listSkills`（含诊断归属）、`createBlankSkill`、`scanImportSource`、`importSkills`、`deleteSkill` 及单测（含无 `skills/`、broken、重名、单技能与合集导入、缺 SKILL.md 导入）。
 
 ### 阶段 1：技能分类与列表
 - [ ] 新增分类与导航入口；SkillList 展示、展开清单、点开文件走现有详情、broken/warning 展示、空状态、删除二次确认。
@@ -176,4 +176,12 @@ description: 一句话说明这个技能做什么、什么时候该用（AI 靠�
 
 ## 施工日志
 
-（待施工）
+### 2026-11-22 阶段 0：技能服务
+
+- 落地 `packages/core/src/services/skill-service.ts` 与 `services/types.ts` 视图类型（SkillView / BrokenSkillView / SkillImportScanView / SkillImportOutcomeView 等），`services/index.ts` 注册 `skillService` 命名空间导出。18 项单测（无 skills/、好坏并存、warning 归属、broken 人话原因、新建模板/重名/非法名、单技能与合集扫描导入、同名跳过、缺 SKILL.md、整夹删除、不存在删除）全过；全量 138 文件 1761 用例 + typecheck 全绿。
+- 契约偏差（签名）：`scanImportSource` 补 `projectId` 首参——计划契约只写 `scanImportSource(sourceHandle)`，但候选的 `hasConflict` 必须对照目标项目 `skills/` 现状，无项目上下文无法判定。
+- 契约偏差（字段）：`BrokenSkillView` 在计划三字段（name/directory/reason/code）之外补 `skillFilePath?`——§3.2 要求 broken 技能的 SKILL.md 可点开修复，取自诊断的 path。
+- 实现决策：broken 的 `reason` 按诊断码映射为「人话 + 修复动作」（如 skill_missing_description →「缺少描述，AI 看不到这个技能。打开 SKILL.md 补上 description 即可」），不复用发现层面向开发者的 message（skill_read_failed 例外，保留原始错误信息）。
+- 实现决策：导入复制跳过点开头条目（.DS_Store 等）——发现与清单层都不见它们，复制只浪费空间；「整体复制」语义按「AI 可见的包内容」执行。文件按二进制流复制（脚本原样、不解析）。
+- 实现决策：删除用 `removeEntry(name, { recursive: true })` 整夹直删（不进回收站，决策 9「不可撤销」）；NotFoundError 抛 `SkillNotFoundError` 提示刷新，不静默幂等成功（避免掩盖删错名）。
+
